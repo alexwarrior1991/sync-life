@@ -195,6 +195,33 @@ public class TaskService {
         });
     }
 
+    /**
+     * Borra varias tareas en una sola transacción. Las generadas por una rutina no se borran
+     * (se volverían a generar): se saltan y se cuentan aparte.
+     */
+    public DeleteResult deleteAll(Collection<Long> ids) {
+        if (ids.isEmpty()) {
+            return new DeleteResult(0, 0);
+        }
+        return sessionFactory.fromTransaction(s -> {
+            int deleted = 0;
+            int skipped = 0;
+            for (Long id : ids) {
+                Task task = s.find(Task.class, id);
+                if (task == null) {
+                    continue;
+                }
+                if (task.isRoutineInstance()) {
+                    skipped++;
+                } else {
+                    s.remove(task);
+                    deleted++;
+                }
+            }
+            return new DeleteResult(deleted, skipped);
+        });
+    }
+
     // ---------------------------------------------------------------- auxiliares
 
     private Task update(long id, java.util.function.Consumer<Task> change) {

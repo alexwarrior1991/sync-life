@@ -83,6 +83,7 @@ public class WeekController implements ViewController {
         buildColumns();
 
         unscheduledList.setCellFactory(list -> new TaskListCell(actions, true));
+        actions.installDeleteKey(unscheduledList);
         Label empty = new Label("Nada pendiente sin fecha");
         empty.getStyleClass().add("placeholder");
         unscheduledList.setPlaceholder(empty);
@@ -145,6 +146,7 @@ public class WeekController implements ViewController {
             ListView<Task> list = new ListView<>();
             list.getStyleClass().add("day-list");
             list.setCellFactory(l -> new TaskListCell(actions, true));
+            actions.installDeleteKey(list);
             VBox.setVgrow(list, Priority.ALWAYS);
 
             VBox root = new VBox(4, header, list);

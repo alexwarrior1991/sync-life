@@ -3,6 +3,7 @@ package com.alejandro.synclife;
 import com.alejandro.synclife.config.AppPaths;
 import com.alejandro.synclife.controller.MainController;
 import com.alejandro.synclife.ui.Dialogs;
+import com.alejandro.synclife.ui.Fonts;
 import com.alejandro.synclife.ui.FxAsync;
 import com.alejandro.synclife.ui.SmokeRunner;
 import com.alejandro.synclife.ui.Theme;
@@ -57,6 +58,7 @@ public class SyncLifeApp extends Application {
             return;
         }
 
+        Fonts.load();
         Theme.apply(context.settings().getTheme());
         ViewLoader.Loaded<MainController> main = ViewLoader.load(context, "main.fxml");
         Scene scene = new Scene(main.root(), 1280, 820);

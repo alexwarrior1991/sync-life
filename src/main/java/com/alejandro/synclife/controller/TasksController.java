@@ -18,21 +18,26 @@ import com.alejandro.synclife.ui.cell.CategoryChoiceCell;
 import javafx.animation.PauseTransition;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.SortedList;
 import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.util.Duration;
@@ -40,6 +45,7 @@ import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
@@ -74,6 +80,8 @@ public class TasksController implements ViewController {
     private boolean resetting;
 
     @FXML private Label countLabel;
+    @FXML private Button deleteDoneButton;
+    @FXML private Button deleteSelectedButton;
     @FXML private CustomTextField searchField;
     @FXML private ComboBox<Choice<Area>> areaFilter;
     @FXML private ComboBox<Choice<Category>> categoryFilter;
@@ -123,6 +131,7 @@ public class TasksController implements ViewController {
         searchField.textProperty().addListener((obs, old, value) -> searchDelay.playFromStart());
 
         buildTable();
+        updateDeleteButtons();
     }
 
     private void buildTable() {
@@ -175,7 +184,8 @@ public class TasksController implements ViewController {
         title.setPrefWidth(280);
 
         TableColumn<Task, Area> area = graphicColumn("Área", Task::getArea, Ui::areaChip);
-        area.setPrefWidth(110);
+        area.setPrefWidth(130);
+        area.setMinWidth(120);
 
         TableColumn<Task, Category> category = new TableColumn<>("Categoría");
         category.setCellValueFactory(cd -> new ReadOnlyObjectWrapper<>(cd.getValue().getCategory()));
@@ -188,10 +198,10 @@ public class TasksController implements ViewController {
                 setGraphic(empty || value == null ? null : Ui.dot(value.getColorHex(), 4));
             }
         });
-        category.setPrefWidth(150);
+        category.setPrefWidth(170);
 
         TableColumn<Task, Priority> priority = graphicColumn("Prioridad", Task::getPriority, Ui::priorityBadge);
-        priority.setPrefWidth(100);
+        priority.setPrefWidth(110);
 
         TableColumn<Task, TaskStatus> status = textColumn("Estado", Task::getStatus, TaskStatus::getDisplayName);
         status.setPrefWidth(110);
@@ -227,7 +237,7 @@ public class TasksController implements ViewController {
 
         TableColumn<Task, Integer> estimate = textColumn("Estimado", Task::getEstimatedMinutes, Formats::duration);
         estimate.setComparator(Comparator.nullsLast(Comparator.naturalOrder()));
-        estimate.setPrefWidth(90);
+        estimate.setPrefWidth(100);
 
         table.getColumns().setAll(List.of(done, title, area, category, priority, status, scheduled, time, due, estimate));
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
@@ -238,15 +248,33 @@ public class TasksController implements ViewController {
         empty.getStyleClass().add("placeholder");
         table.setPlaceholder(empty);
 
+        // Selección múltiple (Ctrl/Mayús + clic) para borrar varias a la vez; Supr borra la selección
+        table.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        table.getSelectionModel().getSelectedItems().addListener(
+                (ListChangeListener<Task>) change -> updateDeleteButtons());
+        table.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == KeyCode.DELETE && !table.getSelectionModel().isEmpty()) {
+                deleteSelected();
+                e.consume();
+            }
+        });
+
         table.setRowFactory(tv -> {
+            ContextMenu menu = new ContextMenu();
             TableRow<Task> row = new TableRow<>() {
                 @Override
                 protected void updateItem(Task task, boolean empty) {
                     super.updateItem(task, empty);
                     pseudoClassStateChanged(DONE, !empty && task != null && !task.isOpen());
-                    setContextMenu(empty || task == null ? null : rowMenu(task));
+                    setContextMenu(empty || task == null ? null : menu);
                 }
             };
+            // El menú se construye al abrirlo: depende de cuántas filas haya seleccionadas en ese momento
+            menu.setOnShowing(e -> {
+                if (row.getItem() != null) {
+                    menu.getItems().setAll(rowMenuItems(row.getItem()));
+                }
+            });
             row.setOnMouseClicked(e -> {
                 if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2 && !row.isEmpty()) {
                     actions.edit(row.getItem());
@@ -256,27 +284,59 @@ public class TasksController implements ViewController {
         });
     }
 
-    private ContextMenu rowMenu(Task task) {
+    private List<MenuItem> rowMenuItems(Task task) {
+        List<Task> selected = table.getSelectionModel().getSelectedItems();
+        if (selected.size() > 1 && selected.contains(task)) {
+            MenuItem deleteSelected = new MenuItem("Eliminar seleccionadas (" + selected.size() + ")",
+                    new FontIcon("mdi2d-delete-sweep-outline"));
+            deleteSelected.setOnAction(e -> deleteSelected());
+            return List.of(deleteSelected);
+        }
         MenuItem edit = new MenuItem("Editar…", new FontIcon("mdi2p-pencil-outline"));
         edit.setOnAction(e -> actions.edit(task));
         MenuItem toggle = new MenuItem(task.isOpen() ? "Marcar como hecha" : "Reabrir",
                 new FontIcon(task.isOpen() ? "mdi2c-check" : "mdi2r-refresh"));
         toggle.setOnAction(e -> actions.toggleDone(task));
-        ContextMenu menu = new ContextMenu(edit, toggle);
+        List<MenuItem> items = new ArrayList<>(List.of(edit, toggle));
         if (task.isRoutineInstance()) {
             if (task.isOpen()) {
                 MenuItem skip = new MenuItem("Omitir este día", new FontIcon("mdi2s-skip-next"));
                 skip.setOnAction(e -> actions.skip(task));
-                menu.getItems().add(skip);
+                items.add(skip);
             }
         } else {
             MenuItem toToday = new MenuItem("Mover a hoy", new FontIcon("mdi2c-calendar-today"));
             toToday.setOnAction(e -> actions.moveTo(task, context.today()));
             MenuItem delete = new MenuItem("Eliminar", new FontIcon("mdi2d-delete-outline"));
             delete.setOnAction(e -> actions.delete(task));
-            menu.getItems().addAll(toToday, new SeparatorMenuItem(), delete);
+            items.addAll(List.of(toToday, new SeparatorMenuItem(), delete));
         }
-        return menu;
+        return items;
+    }
+
+    /** Actualiza el texto y el estado de "Eliminar seleccionadas (N)" y "Borrar completadas (N)". */
+    private void updateDeleteButtons() {
+        int selected = table.getSelectionModel().getSelectedItems().size();
+        deleteSelectedButton.setDisable(selected == 0);
+        deleteSelectedButton.setText(selected == 0 ? "Eliminar seleccionadas" : "Eliminar seleccionadas (" + selected + ")");
+        int completed = completedVisible().size();
+        deleteDoneButton.setDisable(completed == 0);
+        deleteDoneButton.setText(completed == 0 ? "Borrar completadas" : "Borrar completadas (" + completed + ")");
+    }
+
+    /** Tareas completadas (no de rutina) de la lista visible: respeta los filtros actuales. */
+    private List<Task> completedVisible() {
+        return items.stream().filter(t -> t.isDone() && !t.isRoutineInstance()).toList();
+    }
+
+    @FXML
+    private void deleteSelected() {
+        actions.deleteMany(new ArrayList<>(table.getSelectionModel().getSelectedItems()));
+    }
+
+    @FXML
+    private void deleteCompleted() {
+        actions.deleteMany(completedVisible());
     }
 
     private static <V> TableColumn<Task, V> textColumn(String name, Function<Task, V> getter, Function<V, String> format) {
@@ -331,6 +391,7 @@ public class TasksController implements ViewController {
         TaskFilter filter = buildFilter();
         FxAsync.run(() -> context.tasks().search(filter), tasks -> {
             items.setAll(tasks);
+            updateDeleteButtons();
             long open = tasks.stream().filter(Task::isOpen).count();
             countLabel.setText(tasks.size() + (tasks.size() == 1 ? " tarea" : " tareas")
                     + " · " + open + (open == 1 ? " abierta" : " abiertas"));

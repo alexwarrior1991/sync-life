@@ -26,19 +26,27 @@
                     <Label fx:id="countLabel" styleClass="text-muted"/>
                 </VBox>
                 <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="deleteDoneButton" text="Borrar completadas" onAction="#deleteCompleted"
+                        styleClass="flat" minWidth="-Infinity">
+                    <graphic><FontIcon iconLiteral="mdi2b-broom"/></graphic>
+                </Button>
+                <Button fx:id="deleteSelectedButton" text="Eliminar seleccionadas" onAction="#deleteSelected"
+                        styleClass="danger, button-outlined" minWidth="-Infinity">
+                    <graphic><FontIcon iconLiteral="mdi2d-delete-sweep-outline"/></graphic>
+                </Button>
                 <Button text="Nueva tarea" onAction="#newTask" styleClass="accent" minWidth="-Infinity">
                     <graphic><FontIcon iconLiteral="mdi2p-plus"/></graphic>
                 </Button>
             </HBox>
             <FlowPane hgap="8" vgap="8" styleClass="filter-bar">
-                <CustomTextField fx:id="searchField" promptText="Buscar (título, notas, categoría)…" prefWidth="260">
+                <CustomTextField fx:id="searchField" promptText="Buscar título, notas…" prefWidth="260">
                     <left><FontIcon iconLiteral="mdi2m-magnify"/></left>
                 </CustomTextField>
-                <ComboBox fx:id="areaFilter" prefWidth="160"/>
-                <ComboBox fx:id="categoryFilter" prefWidth="200"/>
-                <ComboBox fx:id="statusFilter" prefWidth="170"/>
-                <ComboBox fx:id="priorityFilter" prefWidth="190"/>
-                <ComboBox fx:id="dateFilter" prefWidth="180"/>
+                <ComboBox fx:id="areaFilter" prefWidth="190"/>
+                <ComboBox fx:id="categoryFilter" prefWidth="240"/>
+                <ComboBox fx:id="statusFilter" prefWidth="200"/>
+                <ComboBox fx:id="priorityFilter" prefWidth="230"/>
+                <ComboBox fx:id="dateFilter" prefWidth="210"/>
                 <CheckBox fx:id="includeRoutines" text="Incluir rutinas"/>
                 <Button text="Limpiar filtros" onAction="#clearFilters" styleClass="flat">
                     <graphic><FontIcon iconLiteral="mdi2f-filter-remove-outline"/></graphic>

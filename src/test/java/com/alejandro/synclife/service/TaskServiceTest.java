@@ -220,6 +220,23 @@ class TaskServiceTest {
     }
 
     @Test
+    void deleteAllRemovesOrdinaryTasksAndSkipsRoutineInstances() {
+        Task a = task("A", Area.TRABAJO, TODAY, null, Priority.MEDIA);
+        Task b = task("B", Area.VIDA, null, null, Priority.BAJA);
+        ctx.routines().save(new Routine("Diaria", Area.VIDA, DaysOfWeek.ALL, TODAY));
+        Task instance = tasks.tasksForDay(TODAY).stream()
+                .filter(Task::isRoutineInstance).findFirst().orElseThrow();
+
+        DeleteResult result = tasks.deleteAll(List.of(a.getId(), b.getId(), instance.getId(), 9_999L));
+
+        assertThat(result).isEqualTo(new DeleteResult(2, 1));
+        assertThat(tasks.findById(a.getId())).isEmpty();
+        assertThat(tasks.findById(b.getId())).isEmpty();
+        assertThat(tasks.tasksForDay(TODAY)).extracting(Task::getTitle).containsExactly("Diaria");
+        assertThat(tasks.deleteAll(List.of())).isEqualTo(new DeleteResult(0, 0));
+    }
+
+    @Test
     void deletesOrdinaryTasks() {
         Task t = task("Temporal", Area.VIDA, TODAY, null, Priority.BAJA);
         tasks.delete(t.getId());

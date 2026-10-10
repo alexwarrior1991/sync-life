@@ -35,13 +35,16 @@ o la variable de entorno `SYNCLIFE_HOME`.
 |---|---|
 | **Hoy** | Agenda del día ordenada por hora, progreso por área, alta rápida, tareas arrastradas de días anteriores y fechas límite próximas. |
 | **Semana** | Siete columnas (L–D). Arrastra tareas entre días o desde "Sin programar" para planificar. Filtro por área. |
-| **Tareas** | Todas las tareas en una tabla con búsqueda (sin distinguir tildes) y filtros por área, categoría, estado, prioridad y fecha. |
+| **Tareas** | Todas las tareas en una tabla con búsqueda (sin distinguir tildes) y filtros por área, categoría, estado, prioridad y fecha. Selección múltiple (Ctrl/Mayús + clic) para **eliminar varias a la vez** y botón **Borrar completadas**. |
 | **Rutinas** | Hábitos recurrentes (p. ej. "Gimnasio L-X-V 19:00"). Cada rutina genera automáticamente la tarea de cada día. |
 | **Categorías** | Categorías propias dentro de cada área (Trabajo, Deporte, Vida), con color. Se pueden archivar. |
 | **Estadísticas** | Completadas por área y por día, tiempo invertido y cumplimiento de rutinas. |
 | **Ajustes** | Tema claro/oscuro, días de antelación de las rutinas, copia de seguridad y carpeta de datos. |
 
-Atajos: **Ctrl+N** nueva tarea · **Ctrl+1…7** cambiar de pantalla · **F5** actualizar · doble clic para editar · clic derecho para más acciones.
+Atajos: **Ctrl+N** nueva tarea · **Ctrl+1…7** cambiar de pantalla · **F5** actualizar · **Supr** eliminar la tarea seleccionada · doble clic para editar · clic derecho para más acciones.
+
+Para **eliminar** una tarea: la papelera al final de cada fila, el botón «Eliminar» del editor o la tecla Supr.
+Las tareas que genera una rutina no se eliminan (volverían a aparecer): en su lugar se **omiten** (icono ⏭ o Supr).
 
 ## Arquitectura (MVC por capas)
 
@@ -98,6 +101,11 @@ Prueba de humo de la interfaz completa (recorre todas las pantallas y guarda cap
 ```bash
 java -Dsynclife.home=/tmp/synclife-prueba -Dsynclife.smoke=true -Dsynclife.smoke.shots=/tmp/capturas -jar target/SyncLife-all.jar
 ```
+
+## Créditos
+
+La interfaz usa la fuente [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (la del editor de IntelliJ),
+incluida en el JAR bajo la licencia SIL Open Font License 1.1 (`src/main/resources/com/alejandro/synclife/fonts/OFL.txt`).
 
 ## Ideas para próximas versiones
 

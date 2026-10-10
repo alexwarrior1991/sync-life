@@ -7,8 +7,10 @@ import com.alejandro.synclife.model.entity.Category;
 import com.alejandro.synclife.model.entity.Task;
 import com.alejandro.synclife.model.enums.Area;
 import com.alejandro.synclife.model.enums.TaskStatus;
+import com.alejandro.synclife.service.DeleteResult;
 import com.alejandro.synclife.service.DemoData;
 import com.alejandro.synclife.ui.control.TaskEditorDialog;
+import com.alejandro.synclife.ui.control.TaskEditorDialog.EditorResult;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -50,7 +52,8 @@ public final class SmokeRunner {
     private final Stage stage;
     private final Path shotsDir;
     private final Deque<Runnable> steps = new ArrayDeque<>();
-    private Dialog<Task> editor;
+    private Dialog<EditorResult> editor;
+    private String originalTitle;
 
     public SmokeRunner(AppContext context, MainController main, Stage stage) {
         this.context = context;
@@ -102,26 +105,46 @@ public final class SmokeRunner {
         }));
         steps.add(() -> shot("editor", editor.getDialogPane().getScene()));
         steps.add(() -> editor.close());
-        // Editar una tarea existente pulsando "Guardar" en el diálogo y persistir el resultado
+        // Editar una tarea existente (con botón "Eliminar") pulsando "Guardar" y persistir el resultado
         steps.add(() -> FxAsync.run(() -> new EditData(
-                context.tasks().tasksForDay(context.today()).get(0),
+                context.tasks().tasksForDay(context.today()).stream()
+                        .filter(t -> !t.isRoutineInstance()).findFirst().orElseThrow(),
                 context.categories().findAll(false)), data -> {
             Task existing = data.task();
+            originalTitle = existing.getTitle();
             editor = TaskEditorDialog.create(stage, context, existing, existing.getScheduledDate(), data.categories());
             editor.show();
+        }));
+        steps.add(() -> shot("editor-existente", editor.getDialogPane().getScene()));
+        steps.add(() -> {
+            boolean hasDelete = editor.getDialogPane().getButtonTypes().stream()
+                    .anyMatch(b -> b.getButtonData() == ButtonBar.ButtonData.LEFT);
+            if (!hasDelete) {
+                fail("el editor de una tarea existente no ofrece «Eliminar»");
+            }
             ButtonType save = editor.getDialogPane().getButtonTypes().stream()
                     .filter(b -> b.getButtonData() == ButtonBar.ButtonData.OK_DONE).findFirst().orElseThrow();
             ((Button) editor.getDialogPane().lookupButton(save)).fire();
-            Task edited = editor.getResult();
-            if (edited == null) {
+            EditorResult result = editor.getResult();
+            if (result == null || result.delete()) {
                 fail("el diálogo no devolvió la tarea editada");
                 return;
             }
-            FxAsync.run(() -> context.tasks().save(edited), saved -> {
-                if (!saved.getTitle().equals(existing.getTitle())) {
+            FxAsync.run(() -> context.tasks().save(result.task()), saved -> {
+                if (!saved.getTitle().equals(originalTitle)) {
                     fail("el título cambió al guardar sin modificar");
                 }
             });
+        });
+        // Borrado múltiple
+        steps.add(() -> FxAsync.run(() -> {
+            Task first = context.tasks().quickAdd("Borrar 1", Area.VIDA, context.today(), null);
+            Task second = context.tasks().quickAdd("Borrar 2", Area.VIDA, null, null);
+            return context.tasks().deleteAll(List.of(first.getId(), second.getId()));
+        }, result -> {
+            if (!result.equals(new DeleteResult(2, 0))) {
+                fail("borrado múltiple inesperado: " + result);
+            }
         }));
         steps.add(() -> FxAsync.run(() -> {
             Task task = context.tasks().quickAdd("Prueba de humo", Area.TRABAJO, context.today(), null);
