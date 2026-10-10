@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<BorderPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.alejandro.synclife.controller.WeekController"
+            styleClass="page">
+    <top>
+        <VBox spacing="12">
+            <BorderPane.margin><Insets bottom="12"/></BorderPane.margin>
+            <HBox styleClass="page-header" spacing="8">
+                <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
+                    <Label fx:id="weekTitle" styleClass="title-2"/>
+                    <Label fx:id="weekSubtitle" styleClass="text-muted"/>
+                </VBox>
+                <Button onAction="#previousWeek" styleClass="button-icon, flat" minWidth="-Infinity">
+                    <graphic><FontIcon iconLiteral="mdi2c-chevron-left"/></graphic>
+                </Button>
+                <Button text="Esta semana" onAction="#thisWeek" minWidth="-Infinity"/>
+                <Button onAction="#nextWeek" styleClass="button-icon, flat" minWidth="-Infinity">
+                    <graphic><FontIcon iconLiteral="mdi2c-chevron-right"/></graphic>
+                </Button>
+                <Button text="Nueva tarea" onAction="#newTask" styleClass="accent" minWidth="-Infinity">
+                    <graphic><FontIcon iconLiteral="mdi2p-plus"/></graphic>
+                </Button>
+            </HBox>
+            <HBox styleClass="week-toolbar" spacing="8">
+                <HBox fx:id="areaFilterBox"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <ToggleButton fx:id="unscheduledToggle" text="Sin programar" selected="true" minWidth="-Infinity">
+                    <graphic><FontIcon iconLiteral="mdi2i-inbox-outline"/></graphic>
+                </ToggleButton>
+            </HBox>
+        </VBox>
+    </top>
+    <center>
+        <HBox spacing="10">
+            <GridPane fx:id="weekGrid" hgap="6" HBox.hgrow="ALWAYS"/>
+            <VBox fx:id="unscheduledBox" prefWidth="220" minWidth="180" spacing="6" styleClass="panel">
+                <Label text="Sin programar" styleClass="title-4"/>
+                <Label text="Arrastra una tarea a un día para planificarla, o aquí para quitarle la fecha."
+                       styleClass="text-muted, text-small" wrapText="true"/>
+                <ListView fx:id="unscheduledList" VBox.vgrow="ALWAYS"/>
+            </VBox>
+        </HBox>
+    </center>
+</BorderPane>

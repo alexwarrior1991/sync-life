@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<ScrollPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.alejandro.synclife.controller.SettingsController"
+            fitToWidth="true" styleClass="edge-to-edge">
+    <VBox styleClass="page" spacing="16">
+        <Label text="Ajustes" styleClass="title-2"/>
+
+        <VBox styleClass="panel" spacing="10" maxWidth="760">
+            <Label text="Apariencia" styleClass="title-4"/>
+            <HBox spacing="20">
+                <RadioButton fx:id="lightRadio" text="Claro">
+                    <graphic><FontIcon iconLiteral="mdi2w-white-balance-sunny"/></graphic>
+                </RadioButton>
+                <RadioButton fx:id="darkRadio" text="Oscuro">
+                    <graphic><FontIcon iconLiteral="mdi2w-weather-night"/></graphic>
+                </RadioButton>
+            </HBox>
+        </VBox>
+
+        <VBox styleClass="panel" spacing="10" maxWidth="760">
+            <Label text="Rutinas" styleClass="title-4"/>
+            <HBox spacing="8" styleClass="settings-row">
+                <Label text="Generar las tareas de las rutinas con"/>
+                <Spinner fx:id="horizonSpinner" editable="true" prefWidth="90"/>
+                <Label text="días de antelación"/>
+                <Button text="Aplicar" onAction="#applyHorizon"/>
+            </HBox>
+            <Label text="Así aparecen en la vista Semana y puedes planificar alrededor de ellas. Nunca se generan días pasados."
+                   styleClass="text-muted, text-small" wrapText="true"/>
+        </VBox>
+
+        <VBox styleClass="panel" spacing="10" maxWidth="760">
+            <Label text="Datos" styleClass="title-4"/>
+            <HBox spacing="8" styleClass="settings-row">
+                <Label text="Carpeta de datos:" minWidth="-Infinity"/>
+                <Label fx:id="dataDirLabel" styleClass="mono" wrapText="true"/>
+            </HBox>
+            <HBox spacing="8">
+                <Button text="Abrir carpeta" onAction="#openDataDir">
+                    <graphic><FontIcon iconLiteral="mdi2f-folder-open-outline"/></graphic>
+                </Button>
+                <Button text="Copia de seguridad…" onAction="#backup">
+                    <graphic><FontIcon iconLiteral="mdi2d-database-export-outline"/></graphic>
+                </Button>
+                <Button text="Cargar datos de ejemplo" onAction="#loadDemo" styleClass="flat"/>
+            </HBox>
+            <Label text="Todo se guarda en un único fichero SQLite (synclife.db). Para trasladarlo a otro equipo, copia la carpeta o usa la copia de seguridad."
+                   styleClass="text-muted, text-small" wrapText="true"/>
+        </VBox>
+
+        <VBox styleClass="panel" spacing="6" maxWidth="760">
+            <Label text="Acerca de" styleClass="title-4"/>
+            <Label fx:id="versionLabel"/>
+            <Label fx:id="runtimeLabel" styleClass="text-muted, text-small"/>
+        </VBox>
+    </VBox>
+</ScrollPane>

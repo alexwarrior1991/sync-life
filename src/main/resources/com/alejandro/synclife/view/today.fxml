@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.alejandro.synclife.ui.control.TimeField?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<BorderPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.alejandro.synclife.controller.TodayController"
+            styleClass="page">
+    <top>
+        <VBox spacing="16">
+            <BorderPane.margin><Insets bottom="16"/></BorderPane.margin>
+            <HBox styleClass="page-header" spacing="8">
+                <VBox spacing="2" minWidth="0">
+                    <Label fx:id="dayTitle" styleClass="title-2"/>
+                    <Label fx:id="daySubtitle" styleClass="text-muted"/>
+                </VBox>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button onAction="#previousDay" styleClass="button-icon, flat" minWidth="-Infinity">
+                    <graphic><FontIcon iconLiteral="mdi2c-chevron-left"/></graphic>
+                </Button>
+                <Button text="Hoy" onAction="#goToday" minWidth="-Infinity"/>
+                <Button onAction="#nextDay" styleClass="button-icon, flat" minWidth="-Infinity">
+                    <graphic><FontIcon iconLiteral="mdi2c-chevron-right"/></graphic>
+                </Button>
+                <DatePicker fx:id="datePicker" prefWidth="150" minWidth="-Infinity"/>
+                <Button text="Nueva tarea" onAction="#newTask" styleClass="accent" minWidth="-Infinity">
+                    <graphic><FontIcon iconLiteral="mdi2p-plus"/></graphic>
+                </Button>
+            </HBox>
+
+            <HBox fx:id="summaryBox" spacing="12"/>
+
+            <HBox styleClass="quick-add" spacing="8" alignment="CENTER_LEFT">
+                <ComboBox fx:id="quickArea" prefWidth="130"/>
+                <TextField fx:id="quickTitle" promptText="Añadir tarea rápida para este día… (Enter)"
+                           onAction="#quickAdd" HBox.hgrow="ALWAYS"/>
+                <TimeField fx:id="quickTime" onAction="#quickAdd"/>
+                <Button text="Añadir" onAction="#quickAdd">
+                    <graphic><FontIcon iconLiteral="mdi2p-plus"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+    </top>
+    <center>
+        <HBox spacing="16">
+            <VBox spacing="8" HBox.hgrow="ALWAYS" styleClass="panel">
+                <HBox spacing="8" styleClass="panel-header">
+                    <Label text="Agenda" styleClass="title-4"/>
+                    <Label fx:id="agendaCount" styleClass="text-muted"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <CheckBox fx:id="showDone" text="Mostrar completadas" selected="true"/>
+                </HBox>
+                <ListView fx:id="agendaList" VBox.vgrow="ALWAYS"/>
+            </VBox>
+            <VBox fx:id="sideColumn" spacing="8" prefWidth="360" minWidth="280" styleClass="panel">
+                <HBox spacing="8" styleClass="panel-header">
+                    <Label text="De días anteriores" styleClass="title-4"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="moveAllButton" text="Mover todo a hoy" onAction="#moveAllToToday"
+                            styleClass="small, flat"/>
+                </HBox>
+                <ListView fx:id="carryList" VBox.vgrow="ALWAYS"/>
+                <HBox spacing="8" styleClass="panel-header">
+                    <Label text="Vence pronto" styleClass="title-4"/>
+                    <Label text="(7 días)" styleClass="text-muted"/>
+                </HBox>
+                <ListView fx:id="dueList" VBox.vgrow="ALWAYS"/>
+            </VBox>
+        </HBox>
+    </center>
+</BorderPane>
