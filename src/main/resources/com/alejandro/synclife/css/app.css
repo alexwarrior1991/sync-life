@@ -1,0 +1,421 @@
+/*
+ * Estilos propios de SyncLife. Se apoyan en las variables de color de AtlantaFX (-color-*),
+ * así que funcionan igual en el tema claro y en el oscuro.
+ */
+
+/* ------------------------------------------------------------------ estructura */
+
+.main-root {
+    -fx-background-color: -color-bg-default;
+}
+
+.sidebar {
+    -fx-background-color: -color-bg-subtle;
+    -fx-border-color: -color-border-muted;
+    -fx-border-width: 0 1 0 0;
+    -fx-padding: 20 12 16 12;
+    -fx-spacing: 6;
+}
+
+.brand {
+    -fx-alignment: center-left;
+    -fx-spacing: 8;
+    -fx-padding: 0 8 0 8;
+}
+
+.brand-icon {
+    -fx-icon-size: 26px;
+    -fx-icon-color: -color-accent-emphasis;
+}
+
+.brand-title {
+    -fx-font-size: 1.6em;
+    -fx-font-weight: bold;
+}
+
+.sidebar-date {
+    -fx-text-fill: -color-fg-muted;
+    -fx-padding: 0 8 14 8;
+}
+
+.sidebar-hint {
+    -fx-text-fill: -color-fg-subtle;
+    -fx-font-size: 0.85em;
+    -fx-padding: 10 8 0 8;
+}
+
+.nav {
+    -fx-spacing: 2;
+}
+
+.nav-button {
+    -fx-alignment: center-left;
+    -fx-graphic-text-gap: 10;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 6;
+    -fx-padding: 8 12 8 12;
+    -fx-text-fill: -color-fg-default;
+}
+
+.nav-button .ikonli-font-icon {
+    -fx-icon-size: 18px;
+    -fx-icon-color: -color-fg-muted;
+}
+
+.nav-button:hover {
+    -fx-background-color: -color-bg-default;
+}
+
+.nav-button:selected {
+    -fx-background-color: -color-accent-subtle;
+    -fx-text-fill: -color-accent-fg;
+    -fx-font-weight: bold;
+}
+
+.nav-button:selected .ikonli-font-icon {
+    -fx-icon-color: -color-accent-fg;
+}
+
+.content-host {
+    -fx-background-color: -color-bg-default;
+}
+
+.page {
+    -fx-padding: 24 28 24 28;
+}
+
+.page-header {
+    -fx-alignment: center-left;
+}
+
+.panel {
+    -fx-background-color: -color-bg-default;
+    -fx-border-color: -color-border-default;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+}
+
+.panel-header {
+    -fx-alignment: center-left;
+}
+
+.placeholder {
+    -fx-text-fill: -color-fg-subtle;
+    -fx-text-alignment: center;
+    -fx-padding: 16;
+}
+
+.mono {
+    -fx-font-family: monospace;
+}
+
+/* ------------------------------------------------------------------ resumen (tarjetas) */
+
+.summary-card {
+    -fx-background-color: -color-bg-subtle;
+    -fx-border-color: -color-border-muted;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 12 14 12 14;
+    -fx-min-width: 150;
+}
+
+.summary-title {
+    -fx-font-weight: bold;
+    -fx-graphic-text-gap: 6;
+}
+
+.summary-count {
+    -fx-font-size: 1.6em;
+    -fx-font-weight: bold;
+}
+
+.summary-card .progress-bar {
+    -color-progress-bar-track: -color-border-muted;
+}
+
+.quick-add {
+    -fx-alignment: center-left;
+    -fx-background-color: -color-bg-subtle;
+    -fx-background-radius: 8;
+    -fx-padding: 8;
+}
+
+/* ------------------------------------------------------------------ listas de tareas */
+
+.list-view {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.task-cell {
+    -fx-padding: 6 8 6 8;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -color-border-muted transparent;
+}
+
+.task-cell:hover {
+    -fx-background-color: -color-bg-subtle;
+}
+
+.task-cell:selected {
+    -fx-background-color: -color-accent-subtle;
+}
+
+.task-cell:empty {
+    -fx-border-color: transparent;
+}
+
+.task-title {
+    -fx-text-fill: -color-fg-default;
+}
+
+.task-meta {
+    -fx-text-fill: -color-fg-muted;
+    -fx-font-size: 0.9em;
+}
+
+.task-due {
+    -fx-text-fill: -color-warning-fg;
+    -fx-font-size: 0.9em;
+}
+
+.task-due.overdue {
+    -fx-text-fill: -color-danger-fg;
+    -fx-font-weight: bold;
+}
+
+.routine-icon {
+    -fx-icon-color: -color-fg-subtle;
+    -fx-icon-size: 14px;
+}
+
+.task-title-text {
+    -fx-fill: -color-fg-default;
+    -fx-font-size: 0.95em;
+}
+
+:done .task-title,
+:cancelled .task-title {
+    -fx-strikethrough: true;
+    -fx-text-fill: -color-fg-subtle;
+}
+
+:done .task-title-text,
+:cancelled .task-title-text {
+    -fx-strikethrough: true;
+    -fx-fill: -color-fg-subtle;
+}
+
+:done .color-dot,
+:cancelled .color-dot {
+    -fx-opacity: 0.4;
+}
+
+.task-cell.compact {
+    -fx-padding: 3 2 3 2;
+}
+
+.compact-root {
+    -fx-border-width: 0 0 0 3;
+    -fx-padding: 2 0 2 6;
+}
+
+/* ------------------------------------------------------------------ chips y badges */
+
+.chip {
+    -fx-background-color: -color-bg-subtle;
+    -fx-background-radius: 10;
+    -fx-padding: 1 8 1 6;
+    -fx-graphic-text-gap: 5;
+    -fx-font-size: 0.9em;
+}
+
+.badge {
+    -fx-background-radius: 10;
+    -fx-padding: 1 8 1 8;
+    -fx-font-size: 0.85em;
+    -fx-background-color: -color-neutral-muted;
+    -fx-text-fill: -color-fg-default;
+}
+
+.badge.priority-urgente {
+    -fx-background-color: -color-danger-emphasis;
+    -fx-text-fill: -color-fg-emphasis;
+}
+
+.badge.priority-alta {
+    -fx-background-color: -color-warning-muted;
+    -fx-text-fill: -color-fg-default;
+}
+
+.badge.priority-media {
+    -fx-background-color: -color-accent-subtle;
+    -fx-text-fill: -color-accent-fg;
+}
+
+.badge.priority-baja,
+.badge.badge-muted {
+    -fx-background-color: -color-neutral-subtle;
+    -fx-text-fill: -color-fg-muted;
+}
+
+/* ------------------------------------------------------------------ semana */
+
+.day-column {
+    -fx-background-color: -color-bg-subtle;
+    -fx-background-radius: 8;
+    -fx-border-color: -color-border-muted;
+    -fx-border-radius: 8;
+    -fx-padding: 8 6 6 6;
+}
+
+.day-column.today {
+    -fx-border-color: -color-accent-emphasis;
+    -fx-border-width: 2;
+    -fx-background-color: -color-accent-subtle;
+}
+
+.day-column.past {
+    -fx-opacity: 0.75;
+}
+
+.day-header {
+    -fx-padding: 0 0 4 4;
+}
+
+.week-toolbar {
+    -fx-alignment: center-left;
+}
+
+.day-name {
+    -fx-font-weight: bold;
+}
+
+.day-column.today .day-name {
+    -fx-text-fill: -color-accent-fg;
+}
+
+.day-list {
+    -fx-background-color: transparent;
+}
+
+.list-view.drag-over {
+    -fx-background-color: -color-accent-muted;
+    -fx-background-radius: 6;
+}
+
+/* ------------------------------------------------------------------ tabla de tareas */
+
+.tasks-table .table-row-cell:done .text {
+    -fx-fill: -color-fg-subtle;
+}
+
+.tasks-table .table-cell.overdue {
+    -fx-text-fill: -color-danger-fg;
+    -fx-font-weight: bold;
+}
+
+.filter-bar {
+    -fx-alignment: center-left;
+}
+
+/* ------------------------------------------------------------------ rutinas */
+
+.routines-split {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.form-card {
+    -fx-padding: 8 20 20 20;
+}
+
+.routine-cell {
+    -fx-padding: 10 8 10 8;
+    -fx-border-color: transparent transparent -color-border-muted transparent;
+}
+
+.routine-cell:empty {
+    -fx-border-color: transparent;
+}
+
+.routine-cell .ikonli-font-icon {
+    -fx-icon-size: 22px;
+}
+
+.routine-name {
+    -fx-font-weight: bold;
+}
+
+:inactive .routine-name {
+    -fx-text-fill: -color-fg-subtle;
+}
+
+.days-picker .day-toggle {
+    -fx-min-width: 36;
+    -fx-pref-width: 36;
+    -fx-padding: 6 0 6 0;
+    -fx-font-weight: bold;
+}
+
+.preview {
+    -fx-background-color: -color-accent-subtle;
+    -fx-background-radius: 6;
+    -fx-padding: 8 10 8 10;
+    -fx-graphic-text-gap: 8;
+    -fx-text-fill: -color-fg-default;
+}
+
+.routine-note {
+    -fx-background-color: -color-accent-subtle;
+    -fx-background-radius: 6;
+    -fx-padding: 8 10 8 10;
+    -fx-graphic-text-gap: 8;
+}
+
+/* ------------------------------------------------------------------ formularios */
+
+.time-field:invalid {
+    -fx-border-color: -color-danger-emphasis;
+}
+
+.area-card {
+    -fx-spacing: 10;
+}
+
+.settings-row {
+    -fx-alignment: center-left;
+}
+
+.color-picker.compact-picker {
+    -fx-color-label-visible: false;
+}
+
+/* ------------------------------------------------------------------ estadísticas */
+
+.area-bar-row {
+    -fx-alignment: center-left;
+}
+
+.area-bar-row .progress-bar {
+    -color-progress-bar-track: -color-border-muted;
+}
+
+.day-chart .default-color0.chart-bar {
+    -fx-bar-fill: -color-success-emphasis;
+}
+
+.day-chart .default-color1.chart-bar {
+    -fx-bar-fill: -color-neutral-muted;
+}
+
+.day-chart .default-color0.chart-legend-item-symbol {
+    -fx-background-color: -color-success-emphasis;
+}
+
+.day-chart .default-color1.chart-legend-item-symbol {
+    -fx-background-color: -color-neutral-muted;
+}

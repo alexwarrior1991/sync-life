@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import atlantafx.base.controls.CustomTextField?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<BorderPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.alejandro.synclife.controller.TasksController"
+            styleClass="page">
+    <top>
+        <VBox spacing="12">
+            <BorderPane.margin><Insets bottom="12"/></BorderPane.margin>
+            <HBox styleClass="page-header" spacing="8">
+                <VBox spacing="2">
+                    <Label text="Tareas" styleClass="title-2"/>
+                    <Label fx:id="countLabel" styleClass="text-muted"/>
+                </VBox>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="Nueva tarea" onAction="#newTask" styleClass="accent" minWidth="-Infinity">
+                    <graphic><FontIcon iconLiteral="mdi2p-plus"/></graphic>
+                </Button>
+            </HBox>
+            <FlowPane hgap="8" vgap="8" styleClass="filter-bar">
+                <CustomTextField fx:id="searchField" promptText="Buscar (título, notas, categoría)…" prefWidth="260">
+                    <left><FontIcon iconLiteral="mdi2m-magnify"/></left>
+                </CustomTextField>
+                <ComboBox fx:id="areaFilter" prefWidth="160"/>
+                <ComboBox fx:id="categoryFilter" prefWidth="200"/>
+                <ComboBox fx:id="statusFilter" prefWidth="170"/>
+                <ComboBox fx:id="priorityFilter" prefWidth="190"/>
+                <ComboBox fx:id="dateFilter" prefWidth="180"/>
+                <CheckBox fx:id="includeRoutines" text="Incluir rutinas"/>
+                <Button text="Limpiar filtros" onAction="#clearFilters" styleClass="flat">
+                    <graphic><FontIcon iconLiteral="mdi2f-filter-remove-outline"/></graphic>
+                </Button>
+            </FlowPane>
+        </VBox>
+    </top>
+    <center>
+        <TableView fx:id="table" styleClass="tasks-table"/>
+    </center>
+</BorderPane>

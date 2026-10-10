@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<BorderPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.alejandro.synclife.controller.MainController"
+            styleClass="main-root">
+    <left>
+        <VBox styleClass="sidebar" prefWidth="220" minWidth="200">
+            <HBox styleClass="brand">
+                <FontIcon iconLiteral="mdi2s-sync" styleClass="brand-icon"/>
+                <Label text="SyncLife" styleClass="brand-title"/>
+            </HBox>
+            <Label fx:id="todayLabel" styleClass="sidebar-date" wrapText="true"/>
+            <VBox fx:id="primaryNav" styleClass="nav"/>
+            <Region VBox.vgrow="ALWAYS"/>
+            <VBox fx:id="secondaryNav" styleClass="nav"/>
+            <Label text="Ctrl+N nueva tarea · F5 actualizar" styleClass="sidebar-hint" wrapText="true"/>
+        </VBox>
+    </left>
+    <center>
+        <StackPane fx:id="contentHost" styleClass="content-host"/>
+    </center>
+</BorderPane>

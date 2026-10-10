@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import atlantafx.base.controls.ToggleSwitch?>
+<?import com.alejandro.synclife.ui.control.DaysOfWeekPicker?>
+<?import com.alejandro.synclife.ui.control.TimeField?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<BorderPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.alejandro.synclife.controller.RoutinesController"
+            styleClass="page">
+    <top>
+        <HBox styleClass="page-header" spacing="8">
+            <BorderPane.margin><Insets bottom="16"/></BorderPane.margin>
+            <VBox spacing="2">
+                <Label text="Rutinas" styleClass="title-2"/>
+                <Label text="Hábitos que se repiten y generan sus tareas automáticamente" styleClass="text-muted"/>
+            </VBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="Nueva rutina" onAction="#newRoutine" styleClass="accent" minWidth="-Infinity">
+                <graphic><FontIcon iconLiteral="mdi2p-plus"/></graphic>
+            </Button>
+        </HBox>
+    </top>
+    <center>
+        <SplitPane dividerPositions="0.42" styleClass="routines-split">
+            <ListView fx:id="routineList" minWidth="280"/>
+            <ScrollPane fitToWidth="true" styleClass="edge-to-edge" minWidth="420">
+                <VBox spacing="14" styleClass="form-card">
+                    <Label fx:id="formTitle" styleClass="title-3"/>
+                    <GridPane hgap="12" vgap="10">
+                        <columnConstraints>
+                            <ColumnConstraints minWidth="100"/>
+                            <ColumnConstraints hgrow="ALWAYS"/>
+                        </columnConstraints>
+
+                        <Label text="Nombre *" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                        <TextField fx:id="nameField" promptText="p. ej. Gimnasio, Revisar correo…"
+                                   GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                        <Label text="Descripción" GridPane.rowIndex="1" GridPane.columnIndex="0" GridPane.valignment="TOP">
+                            <GridPane.margin><Insets top="6"/></GridPane.margin>
+                        </Label>
+                        <TextArea fx:id="descriptionArea" prefRowCount="2" wrapText="true"
+                                  GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                        <Label text="Área" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                        <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="2" GridPane.columnIndex="1">
+                            <ComboBox fx:id="areaCombo" prefWidth="140"/>
+                            <ComboBox fx:id="categoryCombo" prefWidth="200"/>
+                        </HBox>
+
+                        <Label text="Días" GridPane.rowIndex="3" GridPane.columnIndex="0" GridPane.valignment="TOP">
+                            <GridPane.margin><Insets top="6"/></GridPane.margin>
+                        </Label>
+                        <VBox spacing="6" GridPane.rowIndex="3" GridPane.columnIndex="1">
+                            <DaysOfWeekPicker fx:id="daysPicker"/>
+                            <HBox spacing="4">
+                                <Button text="Laborables" onAction="#presetWeekdays" styleClass="flat, small"/>
+                                <Button text="Fin de semana" onAction="#presetWeekend" styleClass="flat, small"/>
+                                <Button text="Todos los días" onAction="#presetAll" styleClass="flat, small"/>
+                            </HBox>
+                        </VBox>
+
+                        <Label text="Hora" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                        <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="4" GridPane.columnIndex="1">
+                            <TimeField fx:id="timeField"/>
+                            <Label text="Duración" styleClass="text-muted" minWidth="-Infinity"/>
+                            <Spinner fx:id="durationSpinner" editable="true" prefWidth="100"/>
+                            <Label text="min" styleClass="text-muted" minWidth="-Infinity"/>
+                        </HBox>
+
+                        <Label text="Prioridad" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                        <ComboBox fx:id="priorityCombo" prefWidth="140" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+
+                        <Label text="Vigencia" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+                        <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="6" GridPane.columnIndex="1">
+                            <DatePicker fx:id="startPicker" prefWidth="140" promptText="Desde"/>
+                            <Label text="hasta" styleClass="text-muted" minWidth="-Infinity"/>
+                            <DatePicker fx:id="endPicker" prefWidth="140" promptText="Sin fin"/>
+                        </HBox>
+
+                        <Label text="Activa" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
+                        <ToggleSwitch fx:id="activeSwitch" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+                    </GridPane>
+
+                    <Label fx:id="previewLabel" styleClass="preview" wrapText="true" maxWidth="Infinity">
+                        <graphic><FontIcon iconLiteral="mdi2c-calendar-sync-outline"/></graphic>
+                    </Label>
+
+                    <HBox spacing="8">
+                        <Button fx:id="saveButton" text="Guardar" onAction="#save" styleClass="accent">
+                            <graphic><FontIcon iconLiteral="mdi2c-content-save-outline"/></graphic>
+                        </Button>
+                        <Button text="Descartar cambios" onAction="#discard"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="deleteButton" text="Eliminar" onAction="#delete" styleClass="danger, button-outlined">
+                            <graphic><FontIcon iconLiteral="mdi2d-delete-outline"/></graphic>
+                        </Button>
+                    </HBox>
+                    <Label text="Al guardar se regeneran las tareas pendientes desde hoy. Las completadas u omitidas se conservan."
+                           styleClass="text-muted, text-small" wrapText="true"/>
+                </VBox>
+            </ScrollPane>
+        </SplitPane>
+    </center>
+</BorderPane>

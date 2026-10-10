@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.StackedBarChart?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.alejandro.synclife.controller.StatsController"
+            styleClass="page">
+    <top>
+        <HBox styleClass="page-header" spacing="8">
+            <BorderPane.margin><Insets bottom="16"/></BorderPane.margin>
+            <VBox spacing="2">
+                <Label text="Estadísticas" styleClass="title-2"/>
+                <Label fx:id="periodLabel" styleClass="text-muted"/>
+            </VBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <ComboBox fx:id="periodCombo" prefWidth="180"/>
+        </HBox>
+    </top>
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="edge-to-edge">
+            <VBox spacing="16">
+                <HBox fx:id="kpiBox" spacing="12"/>
+                <HBox spacing="16">
+                    <VBox styleClass="panel" spacing="8" HBox.hgrow="ALWAYS" prefWidth="400">
+                        <Label text="Por área" styleClass="title-4"/>
+                        <Label text="Tareas completadas frente al total (sin contar las omitidas)"
+                               styleClass="text-muted, text-small"/>
+                        <VBox fx:id="areaBars" spacing="18">
+                            <padding><Insets top="16"/></padding>
+                        </VBox>
+                    </VBox>
+                    <VBox styleClass="panel" spacing="8" HBox.hgrow="ALWAYS" prefWidth="600">
+                        <Label text="Tareas por día" styleClass="title-4"/>
+                        <StackedBarChart fx:id="dayChart" prefHeight="300" minHeight="260" animated="false" styleClass="day-chart">
+                            <xAxis><CategoryAxis/></xAxis>
+                            <yAxis><NumberAxis minorTickVisible="false" tickUnit="1"/></yAxis>
+                        </StackedBarChart>
+                    </VBox>
+                </HBox>
+                <VBox styleClass="panel" spacing="8">
+                    <Label text="Cumplimiento de rutinas" styleClass="title-4"/>
+                    <Label text="Días ya vividos del periodo: hechas frente a programadas (omitir cuenta como no hecha)."
+                           styleClass="text-muted, text-small"/>
+                    <TableView fx:id="routineTable" prefHeight="220"/>
+                </VBox>
+            </VBox>
+        </ScrollPane>
+    </center>
+</BorderPane>

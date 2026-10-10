@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.alejandro.synclife.controller.CategoriesController"
+            styleClass="page">
+    <top>
+        <HBox styleClass="page-header" spacing="8">
+            <BorderPane.margin><Insets bottom="16"/></BorderPane.margin>
+            <VBox spacing="2">
+                <Label text="Categorías" styleClass="title-2"/>
+                <Label text="Organiza cada área en categorías con su propio color. Doble clic para editar."
+                       styleClass="text-muted"/>
+            </VBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <CheckBox fx:id="showArchived" text="Mostrar archivadas"/>
+        </HBox>
+    </top>
+    <center>
+        <HBox fx:id="areasBox" spacing="16"/>
+    </center>
+</BorderPane>

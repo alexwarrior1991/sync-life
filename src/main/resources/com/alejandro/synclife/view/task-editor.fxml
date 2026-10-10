@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.alejandro.synclife.ui.control.TimeField?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.alejandro.synclife.controller.TaskEditorController"
+      spacing="12" prefWidth="560" styleClass="task-editor">
+
+    <Label fx:id="routineLabel" styleClass="routine-note" wrapText="true" managed="false" visible="false">
+        <graphic>
+            <FontIcon iconLiteral="mdi2r-repeat"/>
+        </graphic>
+    </Label>
+
+    <GridPane hgap="12" vgap="10">
+        <columnConstraints>
+            <ColumnConstraints minWidth="110"/>
+            <ColumnConstraints hgrow="ALWAYS"/>
+        </columnConstraints>
+
+        <Label text="Título *" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+        <TextField fx:id="titleField" promptText="¿Qué hay que hacer?" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+        <Label text="Descripción" GridPane.rowIndex="1" GridPane.columnIndex="0" GridPane.valignment="TOP">
+            <GridPane.margin><Insets top="6"/></GridPane.margin>
+        </Label>
+        <TextArea fx:id="descriptionArea" promptText="Notas, enlaces, detalles…" prefRowCount="3" wrapText="true"
+                  GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+        <Label text="Área" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+        <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="2" GridPane.columnIndex="1">
+            <ComboBox fx:id="areaCombo" prefWidth="150"/>
+            <ComboBox fx:id="categoryCombo" prefWidth="220" promptText="Categoría"/>
+        </HBox>
+
+        <Label text="Prioridad" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+        <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="3" GridPane.columnIndex="1">
+            <ComboBox fx:id="priorityCombo" prefWidth="150"/>
+            <ComboBox fx:id="statusCombo" prefWidth="220"/>
+        </HBox>
+
+        <Label text="Programada" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+        <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="4" GridPane.columnIndex="1">
+            <DatePicker fx:id="scheduledPicker" promptText="Sin fecha" prefWidth="170" minWidth="-Infinity"/>
+            <Label text="a las" styleClass="text-muted" minWidth="-Infinity"/>
+            <TimeField fx:id="timeField" minWidth="-Infinity"/>
+        </HBox>
+
+        <Label text="Duración" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+        <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="5" GridPane.columnIndex="1">
+            <Spinner fx:id="estimateSpinner" editable="true" prefWidth="110" minWidth="-Infinity"/>
+            <Label text="minutos (estimación)" styleClass="text-muted" minWidth="-Infinity"/>
+        </HBox>
+
+        <Label text="Fecha límite" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+        <DatePicker fx:id="duePicker" promptText="Sin fecha límite" prefWidth="170"
+                    GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+    </GridPane>
+</VBox>
