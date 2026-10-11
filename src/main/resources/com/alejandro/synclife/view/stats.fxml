@@ -35,7 +35,7 @@
                     <VBox styleClass="panel" spacing="8" HBox.hgrow="ALWAYS" prefWidth="400">
                         <Label text="Por área" styleClass="title-4"/>
                         <Label text="Tareas completadas frente al total (sin contar las omitidas)"
-                               styleClass="text-muted, text-small"/>
+                               styleClass="text-muted, text-small" wrapText="true"/>
                         <VBox fx:id="areaBars" spacing="18">
                             <padding><Insets top="16"/></padding>
                         </VBox>

@@ -9,6 +9,7 @@ import com.alejandro.synclife.ui.Ui;
 import javafx.beans.binding.Bindings;
 import javafx.css.PseudoClass;
 import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -62,6 +63,10 @@ public class TaskListCell extends ListCell<Task> {
     private final Label due = new Label();
     private final FontIcon routineIcon = new FontIcon("mdi2r-repeat");
     private final Label priority = new Label();
+    /** Papelera (o "omitir" si es de rutina), siempre a mano al final de la fila. */
+    private final FontIcon rowActionIcon = new FontIcon("mdi2d-delete-outline");
+    private final Button rowAction = new Button(null, rowActionIcon);
+    private final Tooltip rowActionTip = new Tooltip();
     private final HBox root;
 
     public TaskListCell(TaskActions actions, boolean compact) {
@@ -94,7 +99,16 @@ public class TaskListCell extends ListCell<Task> {
             root = new HBox(4, text, routineIcon);
             root.getStyleClass().add("compact-root");
         } else {
-            root = new HBox(8, check, dot, text, routineIcon, priority);
+            rowAction.getStyleClass().addAll("button-icon", "flat", "small", "row-action");
+            rowAction.setTooltip(rowActionTip);
+            rowAction.setFocusTraversable(false);
+            rowAction.setOnAction(e -> {
+                Task task = getItem();
+                if (task != null) {
+                    actions.deleteOrSkip(task);
+                }
+            });
+            root = new HBox(8, check, dot, text, routineIcon, priority, rowAction);
         }
         root.setAlignment(Pos.CENTER_LEFT);
         root.setMinWidth(0);
@@ -195,12 +209,30 @@ public class TaskListCell extends ListCell<Task> {
         priority.setText(task.getPriority().getDisplayName());
         priority.getStyleClass().setAll("badge", "priority-" + task.getPriority().name().toLowerCase());
 
+        if (!compact) {
+            updateRowAction(task);
+        }
+
         root.pseudoClassStateChanged(DONE, task.isDone());
         root.pseudoClassStateChanged(CANCELLED, task.getStatus() == TaskStatus.CANCELADA);
 
         setTooltip(task.getDescription() == null ? null : new Tooltip(task.getDescription()));
         setContextMenu(buildMenu(task, today));
         setGraphic(root);
+    }
+
+    private void updateRowAction(Task task) {
+        boolean routine = task.isRoutineInstance();
+        // Una tarea de rutina ya hecha u omitida no tiene acción: no se borra ni se vuelve a omitir
+        boolean available = !routine || task.isOpen();
+        rowAction.setVisible(available);
+        rowAction.setManaged(available);
+        rowActionIcon.setIconLiteral(routine ? "mdi2s-skip-next" : "mdi2d-delete-outline");
+        rowActionTip.setText(routine ? "Omitir este día (Supr)" : "Eliminar tarea (Supr)");
+        rowAction.getStyleClass().remove("danger");
+        if (!routine) {
+            rowAction.getStyleClass().add("danger");
+        }
     }
 
     private ContextMenu buildMenu(Task task, LocalDate today) {

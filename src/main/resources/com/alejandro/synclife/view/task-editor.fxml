@@ -16,7 +16,7 @@
 
 <VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.alejandro.synclife.controller.TaskEditorController"
-      spacing="12" prefWidth="560" styleClass="task-editor">
+      spacing="12" prefWidth="600" styleClass="task-editor">
 
     <Label fx:id="routineLabel" styleClass="routine-note" wrapText="true" managed="false" visible="false">
         <graphic>
@@ -53,7 +53,7 @@
 
         <Label text="Programada" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
         <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="4" GridPane.columnIndex="1">
-            <DatePicker fx:id="scheduledPicker" promptText="Sin fecha" prefWidth="170" minWidth="-Infinity"/>
+            <DatePicker fx:id="scheduledPicker" promptText="Sin fecha" prefWidth="190" minWidth="-Infinity"/>
             <Label text="a las" styleClass="text-muted" minWidth="-Infinity"/>
             <TimeField fx:id="timeField" minWidth="-Infinity"/>
         </HBox>
@@ -65,7 +65,7 @@
         </HBox>
 
         <Label text="Fecha límite" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
-        <DatePicker fx:id="duePicker" promptText="Sin fecha límite" prefWidth="170"
+        <DatePicker fx:id="duePicker" promptText="Sin fecha límite" prefWidth="210"
                     GridPane.rowIndex="6" GridPane.columnIndex="1"/>
     </GridPane>
 </VBox>

@@ -79,6 +79,9 @@ public class TodayController implements ViewController {
         agendaList.setCellFactory(list -> new TaskListCell(actions, false));
         carryList.setCellFactory(list -> new TaskListCell(actions, false));
         dueList.setCellFactory(list -> new TaskListCell(actions, false));
+        for (ListView<Task> list : List.of(agendaList, carryList, dueList)) {
+            actions.installDeleteKey(list);
+        }
         agendaList.setPlaceholder(placeholder("Nada planificado para este día.\nAñade una tarea con el campo de arriba."));
         carryList.setPlaceholder(placeholder("Todo al día"));
         dueList.setPlaceholder(placeholder("Sin fechas límite próximas"));

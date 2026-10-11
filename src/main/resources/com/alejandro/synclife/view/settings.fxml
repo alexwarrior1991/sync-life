@@ -43,7 +43,7 @@
             <Label text="Datos" styleClass="title-4"/>
             <HBox spacing="8" styleClass="settings-row">
                 <Label text="Carpeta de datos:" minWidth="-Infinity"/>
-                <Label fx:id="dataDirLabel" styleClass="mono" wrapText="true"/>
+                <Label fx:id="dataDirLabel" wrapText="true"/>
             </HBox>
             <HBox spacing="8">
                 <Button text="Abrir carpeta" onAction="#openDataDir">

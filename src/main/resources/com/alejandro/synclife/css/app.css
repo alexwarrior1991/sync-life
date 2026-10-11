@@ -3,6 +3,15 @@
  * así que funcionan igual en el tema claro y en el oscuro.
  */
 
+/* ------------------------------------------------------------------ fuente */
+
+/* JetBrains Mono (la fuente de IntelliJ), cargada desde el JAR en Fonts.load().
+   13px en lugar de 14px: una monoespaciada ocupa más ancho. */
+.root {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 13px;
+}
+
 /* ------------------------------------------------------------------ estructura */
 
 .main-root {
@@ -107,10 +116,6 @@
     -fx-padding: 16;
 }
 
-.mono {
-    -fx-font-family: monospace;
-}
-
 /* ------------------------------------------------------------------ resumen (tarjetas) */
 
 .summary-card {
@@ -187,14 +192,29 @@
     -fx-font-weight: bold;
 }
 
+/* Papelera / omitir de cada fila: tenue hasta pasar el ratón por la tarea */
+.task-cell .row-action {
+    -fx-opacity: 0.3;
+}
+
+.task-cell:hover .row-action,
+.task-cell:selected .row-action {
+    -fx-opacity: 1;
+}
+
 .routine-icon {
     -fx-icon-color: -color-fg-subtle;
     -fx-icon-size: 14px;
 }
 
 .task-title-text {
+    -fx-font-family: "JetBrains Mono";
     -fx-fill: -color-fg-default;
-    -fx-font-size: 0.95em;
+    -fx-font-size: 12px;
+}
+
+.task-cell.compact .task-meta {
+    -fx-font-size: 11px;
 }
 
 :done .task-title,
@@ -402,6 +422,10 @@
 
 .area-bar-row .progress-bar {
     -color-progress-bar-track: -color-border-muted;
+}
+
+.axis {
+    -fx-tick-label-font: 11px "JetBrains Mono";
 }
 
 .day-chart .default-color0.chart-bar {
