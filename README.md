@@ -28,7 +28,9 @@ o la variable de entorno `SYNCLIFE_HOME`.
 | ![Hoy](docs/capturas/hoy.png) | ![Matriz de Eisenhower](docs/capturas/matriz.png) |
 | **Editor con lista de comprobación** | **Estadísticas: estimado frente a real** |
 | ![Editor de tareas](docs/capturas/editor.png) | ![Estadísticas](docs/capturas/estadisticas.png) |
-| **Semana** | **Tema oscuro** |
+| **Objetivos** | **Revisión semanal: planificar la semana** |
+| ![Objetivos](docs/capturas/objetivos.png) | ![Revisión semanal](docs/capturas/revision.png) |
+| **Semana con sus prioridades** | **Tema oscuro** |
 | ![Semana](docs/capturas/semana.png) | ![Semana en tema oscuro](docs/capturas/semana-oscuro.png) |
 
 ## Pantallas
@@ -36,16 +38,17 @@ o la variable de entorno `SYNCLIFE_HOME`.
 | Pantalla | Para qué sirve |
 |---|---|
 | **Hoy** | Agenda del día ordenada por hora, progreso por área, alta rápida, tareas arrastradas de días anteriores y fechas límite próximas. |
-| **Semana** | Siete columnas (L–D). Arrastra tareas entre días o desde "Sin programar" para planificar. Filtro por área. |
+| **Semana** | Siete columnas (L–D). Arrastra tareas entre días o desde "Sin programar" para planificar. Filtro por área. Muestra las **prioridades** elegidas en la revisión semanal. |
 | **Tareas** | Todas las tareas en una tabla con búsqueda (sin distinguir tildes) y filtros por área, categoría, estado, prioridad y fecha. Columna **Tiempo** con lo estimado y lo real. Selección múltiple (Ctrl/Mayús + clic) para **eliminar varias a la vez** y botón **Borrar completadas**. |
 | **Matriz** | **Matriz de Eisenhower**: las tareas abiertas en cuatro cuadrantes (hacer ya, planificar, delegar, eliminar) según sean urgentes y/o importantes. Arrastra entre cuadrantes para reclasificar; las nuevas esperan en "Sin clasificar". Por defecto muestra el trabajo. |
+| **Objetivos** | **Objetivos a largo plazo** por área (p. ej. "Correr una 10K") con fecha objetivo. Vincula tareas (de cualquier área) y mira su avance: completadas frente al total. Se marcan como conseguidos o abandonados. |
 | **Rutinas** | Hábitos recurrentes (p. ej. "Gimnasio L-X-V 19:00"). Cada rutina genera automáticamente la tarea de cada día. |
 | **Categorías** | Categorías propias dentro de cada área (Trabajo, Deporte, Vida), con color. Se pueden archivar. |
+| **Revisión semanal** | Asistente guiado en 5 pasos para cerrar una semana y planificar la siguiente: repaso, pendientes, planificar días, hasta **3 prioridades** y notas. Guarda un historial. |
 | **Estadísticas** | Completadas por área y por día, **tiempo real registrado**, **precisión de las estimaciones** (tabla "estimado frente a real") y cumplimiento de rutinas. |
 | **Ajustes** | Tema claro/oscuro, días de antelación de las rutinas, duración del Pomodoro, copia de seguridad y carpeta de datos. |
 
-Atajos: **Ctrl+N** nueva tarea · **Ctrl+1** Hoy · **Ctrl+2** Semana · **Ctrl+3** Tareas · **Ctrl+4** Matriz · **Ctrl+6** Rutinas · **Ctrl+7** Categorías · **Ctrl+9** Estadísticas · **Ctrl+0** Ajustes · **F5** actualizar · **Supr** eliminar la tarea seleccionada · doble clic para editar · clic derecho para más acciones.
-(Ctrl+5 y Ctrl+8 quedan reservados para Objetivos y Revisión semanal.)
+Atajos: **Ctrl+N** nueva tarea · **Ctrl+1** Hoy · **Ctrl+2** Semana · **Ctrl+3** Tareas · **Ctrl+4** Matriz · **Ctrl+5** Objetivos · **Ctrl+6** Rutinas · **Ctrl+7** Categorías · **Ctrl+8** Revisión semanal · **Ctrl+9** Estadísticas · **Ctrl+0** Ajustes · **F5** actualizar · **Supr** eliminar la tarea seleccionada · doble clic para editar · clic derecho para más acciones.
 
 ### Lista de comprobación
 
@@ -65,6 +68,21 @@ Duraciones (25/5/15 min, descanso largo cada 4) y sonido se cambian en Ajustes.
 
 Cada tarea puede marcarse como **urgente** y/o **importante**, independientemente de su prioridad, desde la Matriz
 (arrastrando), el editor (campo *Matriz*) o el clic derecho → *Matriz*. Las tareas generadas por rutinas no se clasifican.
+
+### Objetivos
+
+En **Objetivos**, «Nuevo objetivo» (título, área, fecha objetivo opcional). Después, «Nueva tarea» crea una tarea ya
+vinculada y «Vincular tareas…» elige entre las que tienes abiertas. También se elige el objetivo en el editor de
+cualquier tarea (campo *Objetivo*), y las listas lo muestran junto a la tarea. Borrar un objetivo conserva sus tareas.
+
+### Revisión semanal
+
+De lunes a miércoles propone planificar la semana en curso; de jueves a domingo, la siguiente (se puede cambiar).
+1. **Repaso** de la semana anterior: completadas, pendientes, tiempo registrado, rutinas y objetivos.
+2. **Pendientes**: pásalas al lunes, quítales la fecha, márcalas como hechas o cancélalas (una a una o todas).
+3. **Planificar**: arrastra las tareas sin fecha a un día; cada día muestra su carga.
+4. **Prioridades**: hasta tres tareas para la semana; aparecen en la vista **Semana**.
+5. **Notas** y «Guardar revisión». Puedes volver a una revisión desde el historial y actualizarla.
 
 Para **eliminar** una tarea: la papelera al final de cada fila, el botón «Eliminar» del editor o la tecla Supr.
 Las tareas que genera una rutina no se eliminan (volverían a aparecer): en su lugar se **omiten** (icono ⏭ o Supr).
@@ -99,6 +117,8 @@ src/main/resources/
 - **Task**: título, descripción, área, categoría (opcional), estado, prioridad, día programado, hora, duración estimada, fecha límite, fecha de completado y marcas **urgente/importante** (vacías = sin clasificar). Si la generó una rutina, apunta a ella.
 - **Subtask**: un paso de la lista de comprobación de una tarea (texto, hecho, orden).
 - **TimeEntry**: tiempo real dedicado a una tarea (inicio, fin, minutos efectivos y origen: Pomodoro o manual).
+- **Goal**: objetivo con título, descripción, área, fecha objetivo y estado (en curso, conseguido, abandonado). Las tareas apuntan a él (`goal_id`, opcional).
+- **WeeklyReview** / **WeeklyPriority**: una revisión por semana planificada (su lunes), con notas, una foto de cómo terminó la anterior y hasta tres tareas prioritarias.
 - **Routine**: nombre, área, categoría, días de la semana (máscara de bits), hora, duración, prioridad, vigencia (desde/hasta) y si está activa.
 
 Subtareas y registros de tiempo se borran con su tarea (`ON DELETE CASCADE`). Para no cargar listas enteras en la
@@ -110,7 +130,7 @@ Una tarea de rutina no se borra ni se cambia de día: se puede **"Omitir"**. Al 
 ### Decisiones técnicas
 
 - **Esquema con Flyway, no con `hbm2ddl`**: el dialecto SQLite de Hibernate no genera claves foráneas ni índices únicos compuestos, así que el esquema está en `db/migration/*.sql` y Hibernate solo lo usa (`hbm2ddl.auto=none`).
-  Para cambiar el modelo: añade `V6__descripcion.sql` con el `ALTER TABLE` correspondiente y actualiza la entidad
+  Para cambiar el modelo: añade `V8__descripcion.sql` con el `ALTER TABLE` correspondiente y actualiza la entidad
   (en SQLite, una columna nueva `NOT NULL` necesita valor por defecto y una con `REFERENCES` debe admitir NULL).
 - **Fechas como texto ISO** (`2026-10-12`, `19:00`) mediante `AttributeConverter`, para que no dependan de la zona horaria.
 - **Sin `module-info.java`**: la aplicación se ejecuta en classpath para que el JAR único funcione sin configuración. El aviso `Unsupported JavaFX configuration: classes were loaded from 'unnamed module'` es esperado e inofensivo.
@@ -125,7 +145,7 @@ Una tarea de rutina no se borra ni se cambia de día: se puede **"Omitir"**. Al 
 Incluye tests unitarios (días de la semana, calendario de rutinas, ciclo Pomodoro con instantes simulados, cuadrantes,
 converters, formatos, ajustes) y de integración contra un SQLite real en un directorio temporal: migraciones, claves foráneas
 y borrados en cascada, almacenamiento de fechas, servicios de tareas, listas de comprobación, registro de tiempo,
-matriz, estadísticas, categorías y rutinas.
+matriz, estadísticas, objetivos, revisión semanal, categorías y rutinas.
 
 GitHub Actions (`.github/workflows/ci.yml`) pasa los tests en Linux con Java 21 y en Windows con Java 25, y en Linux
 ejecuta también la prueba de humo de la interfaz y guarda las capturas como artefacto.
@@ -143,7 +163,5 @@ incluida en el JAR bajo la licencia SIL Open Font License 1.1 (`src/main/resourc
 
 ## Ideas para próximas versiones
 
-- Objetivos a largo plazo por área con tareas vinculadas.
-- Revisión semanal guiada.
 - Recordatorios y notificaciones.
 - Exportar/importar CSV e instalador nativo con `jpackage`.

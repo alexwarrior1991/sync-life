@@ -27,5 +27,8 @@
         <mapping class="com.alejandro.synclife.model.entity.Task"/>
         <mapping class="com.alejandro.synclife.model.entity.Subtask"/>
         <mapping class="com.alejandro.synclife.model.entity.TimeEntry"/>
+        <mapping class="com.alejandro.synclife.model.entity.Goal"/>
+        <mapping class="com.alejandro.synclife.model.entity.WeeklyReview"/>
+        <mapping class="com.alejandro.synclife.model.entity.WeeklyPriority"/>
     </session-factory>
 </hibernate-configuration>

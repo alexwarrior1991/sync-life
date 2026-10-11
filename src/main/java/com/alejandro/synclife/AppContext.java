@@ -3,13 +3,17 @@ package com.alejandro.synclife;
 import com.alejandro.synclife.config.AppPaths;
 import com.alejandro.synclife.config.AppSettings;
 import com.alejandro.synclife.dao.CategoryDao;
+import com.alejandro.synclife.dao.GoalDao;
 import com.alejandro.synclife.dao.RoutineDao;
 import com.alejandro.synclife.dao.SubtaskDao;
 import com.alejandro.synclife.dao.TaskDao;
 import com.alejandro.synclife.dao.TimeEntryDao;
+import com.alejandro.synclife.dao.WeeklyReviewDao;
 import com.alejandro.synclife.persistence.DatabaseMigrator;
 import com.alejandro.synclife.persistence.HibernateUtil;
 import com.alejandro.synclife.service.CategoryService;
+import com.alejandro.synclife.service.GoalService;
+import com.alejandro.synclife.service.WeeklyReviewService;
 import com.alejandro.synclife.service.RoutineService;
 import com.alejandro.synclife.service.StatsService;
 import com.alejandro.synclife.service.TaskService;
@@ -41,6 +45,8 @@ public final class AppContext implements AutoCloseable {
     private final RoutineService routineService;
     private final StatsService statsService;
     private final TimeTrackingService timeTrackingService;
+    private final GoalService goalService;
+    private final WeeklyReviewService reviewService;
 
     private AppContext(Path dataDir, Clock clock) {
         try {
@@ -63,8 +69,12 @@ public final class AppContext implements AutoCloseable {
         this.categoryService = new CategoryService(sessionFactory, categoryDao, taskDao);
         this.routineService = new RoutineService(sessionFactory, routineDao, taskDao, clock,
                 settings::getRoutineHorizonDays);
-        this.timeTrackingService = new TimeTrackingService(sessionFactory, new TimeEntryDao(), clock);
+        TimeEntryDao timeEntryDao = new TimeEntryDao();
+        this.timeTrackingService = new TimeTrackingService(sessionFactory, timeEntryDao, clock);
         this.statsService = new StatsService(taskService, timeTrackingService, clock);
+        this.goalService = new GoalService(sessionFactory, new GoalDao(), taskDao, clock);
+        this.reviewService = new WeeklyReviewService(sessionFactory, new WeeklyReviewDao(), taskDao, timeEntryDao,
+                goalService, clock);
     }
 
     /** Crea un contexto independiente (usado por los tests). */
@@ -130,6 +140,14 @@ public final class AppContext implements AutoCloseable {
 
     public TimeTrackingService timeTracking() {
         return timeTrackingService;
+    }
+
+    public GoalService goals() {
+        return goalService;
+    }
+
+    public WeeklyReviewService reviews() {
+        return reviewService;
     }
 
     @Override

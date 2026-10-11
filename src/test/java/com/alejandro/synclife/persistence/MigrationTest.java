@@ -3,6 +3,7 @@ package com.alejandro.synclife.persistence;
 import com.alejandro.synclife.AppContext;
 import com.alejandro.synclife.TestSupport;
 import com.alejandro.synclife.model.ChecklistItem;
+import com.alejandro.synclife.model.entity.Goal;
 import com.alejandro.synclife.model.entity.Task;
 import com.alejandro.synclife.model.enums.Area;
 import org.junit.jupiter.api.AfterEach;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.TimeZone;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MigrationTest {
@@ -41,7 +43,7 @@ class MigrationTest {
     @Test
     void flywayAppliesAllMigrationsAndSeedsCategories() {
         assertThat(TestSupport.single(ctx, "select max(cast(version as integer)) from flyway_schema_history"))
-                .isEqualTo("5");
+                .isEqualTo("7");
         assertThat(TestSupport.column(ctx, "select area || ':' || count(*) from category group by area order by area"))
                 .containsExactly("DEPORTE:3", "TRABAJO:4", "VIDA:4");
     }
@@ -146,6 +148,31 @@ class MigrationTest {
                         + "values (" + task.getId() + ", '2026-10-12T09:00:00', '2026-10-12T10:00:00', 0, "
                         + "'MANUAL', '2026-10-12T10:00:00', '2026-10-12T10:00:00')"))
                 .isInstanceOf(SQLException.class);
+    }
+
+    @Test
+    void deletingAGoalKeepsItsTasksWithoutGoal() {
+        Goal goal = ctx.goals().save(new Goal("Correr una 10K", Area.DEPORTE));
+        Task task = ctx.tasks().save(new Task("Correr 5 km", Area.DEPORTE));
+        ctx.goals().link(goal.getId(), List.of(task.getId()));
+
+        ctx.goals().delete(goal.getId());
+
+        assertThat(TestSupport.single(ctx, "select coalesce(goal_id, 'NULL') from task where id = " + task.getId()))
+                .isEqualTo("NULL");
+        assertThat(ctx.tasks().findById(task.getId()).orElseThrow().getGoal()).isNull();
+    }
+
+    @Test
+    void aReviewWeekMustStartOnMonday() {
+        assertThatThrownBy(() -> TestSupport.execute(ctx,
+                "insert into weekly_review (week_start, created_at, updated_at) "
+                        + "values ('2026-10-13', '2026-10-12T10:00:00', '2026-10-12T10:00:00')"))
+                .isInstanceOf(SQLException.class);
+        assertThatCode(() -> TestSupport.execute(ctx,
+                "insert into weekly_review (week_start, created_at, updated_at) "
+                        + "values ('2026-10-12', '2026-10-12T10:00:00', '2026-10-12T10:00:00')"))
+                .doesNotThrowAnyException();
     }
 
     @Test

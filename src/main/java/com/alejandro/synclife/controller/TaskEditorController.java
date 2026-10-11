@@ -3,6 +3,7 @@ package com.alejandro.synclife.controller;
 import com.alejandro.synclife.AppContext;
 import com.alejandro.synclife.model.ChecklistItem;
 import com.alejandro.synclife.model.entity.Category;
+import com.alejandro.synclife.model.entity.Goal;
 import com.alejandro.synclife.model.entity.Task;
 import com.alejandro.synclife.model.entity.TimeEntry;
 import com.alejandro.synclife.model.enums.Area;
@@ -71,6 +72,9 @@ public class TaskEditorController {
     @FXML private Label quadrantLabel;
     @FXML private HBox quadrantRow;
     @FXML private ComboBox<Choice<Quadrant>> quadrantCombo;
+    @FXML private Label goalLabel;
+    @FXML private HBox goalRow;
+    @FXML private ComboBox<Choice<Goal>> goalCombo;
     @FXML private DatePicker scheduledPicker;
     @FXML private TimeField timeField;
     @FXML private Spinner<Integer> estimateSpinner;
@@ -129,6 +133,19 @@ public class TaskEditorController {
         refreshCategories(areaCombo.getValue());
     }
 
+    /** Objetivos en curso que se pueden elegir (más el de la tarea, aunque ya esté cerrado). */
+    public void setGoals(List<Goal> goals, Goal current) {
+        goalCombo.getItems().setAll(Choice.of("Sin objetivo", null));
+        for (Goal goal : goals) {
+            goalCombo.getItems().add(Choice.of(goal.getTitle(), goal));
+        }
+        if (current != null && !goals.contains(current)) {
+            goalCombo.getItems().add(Choice.of(current.getTitle() + " (" + current.getStatus().getDisplayName().toLowerCase()
+                    + ")", current));
+        }
+        Ui.selectChoice(goalCombo, current);
+    }
+
     /** Rellena el formulario. {@code task == null} significa "nueva tarea" en {@code defaultDate}. */
     public void edit(Task task, LocalDate defaultDate, List<ChecklistItem> checklist, List<TimeEntry> timeEntries) {
         editing = task;
@@ -171,8 +188,9 @@ public class TaskEditorController {
                     + "». Para cambiar el día o repetirla, edita la rutina.");
             routineLabel.setVisible(true);
             routineLabel.setManaged(true);
-            // Se regeneran al editar la rutina: no llevan lista de comprobación ni cuadrante
+            // Se regeneran al editar la rutina: no llevan lista de comprobación, cuadrante ni objetivo
             showRow(quadrantLabel, quadrantRow, false);
+            showRow(goalLabel, goalRow, false);
             checklistBox.setVisible(false);
             checklistBox.setManaged(false);
         }
@@ -190,12 +208,18 @@ public class TaskEditorController {
         if (!target.isRoutineInstance()) {
             target.setScheduledDate(Ui.datePickerValue(scheduledPicker));
             target.setQuadrant(Ui.choiceValue(quadrantCombo));
+            target.setGoal(Ui.choiceValue(goalCombo));
         }
         target.setStartTime(timeField.getTime());
         Integer minutes = spinnerValue();
         target.setEstimatedMinutes(minutes == null || minutes == 0 ? null : minutes);
         target.setDueDate(Ui.datePickerValue(duePicker));
         return target;
+    }
+
+    /** Para una tarea nueva: empieza en {@code area} (p. ej. la del objetivo al que se añade). */
+    public void useArea(Area area) {
+        areaCombo.setValue(area);
     }
 
     /** La lista de comprobación tal como queda en el formulario (vacía para las tareas de rutina). */

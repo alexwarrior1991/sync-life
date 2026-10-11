@@ -35,6 +35,13 @@ public class Navigator {
         }
     }
 
+    /** Controlador de una pantalla ya creada (o null si aún no se ha mostrado). */
+    @SuppressWarnings("unchecked")
+    public <C> C controller(View view) {
+        ViewLoader.Loaded<?> loaded = cache.get(view);
+        return loaded == null ? null : (C) loaded.controller();
+    }
+
     public ReadOnlyObjectProperty<View> currentProperty() {
         return current.getReadOnlyProperty();
     }

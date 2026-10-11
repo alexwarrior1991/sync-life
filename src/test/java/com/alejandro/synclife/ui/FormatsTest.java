@@ -48,6 +48,15 @@ class FormatsTest {
     }
 
     @Test
+    void daysLeftUntilATarget() {
+        assertThat(Formats.daysLeft(MONDAY.plusDays(45), MONDAY)).isEqualTo("Faltan 45 días");
+        assertThat(Formats.daysLeft(MONDAY.plusDays(1), MONDAY)).isEqualTo("Falta 1 día");
+        assertThat(Formats.daysLeft(MONDAY, MONDAY)).isEqualTo("Es hoy");
+        assertThat(Formats.daysLeft(MONDAY.minusDays(1), MONDAY)).isEqualTo("Venció ayer");
+        assertThat(Formats.daysLeft(MONDAY.minusDays(3), MONDAY)).isEqualTo("Venció hace 3 días");
+    }
+
+    @Test
     void trackedAgainstEstimate() {
         assertThat(Formats.trackedVsEstimate(50, 60)).isEqualTo("50 min de 1 h (83 %)");
         assertThat(Formats.trackedVsEstimate(90, null)).isEqualTo("1 h 30 min");

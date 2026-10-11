@@ -598,3 +598,153 @@
 .quadrant-icon {
     -fx-icon-size: 18px;
 }
+
+/* ------------------------------------------------------------------ objetivos */
+
+.badge.badge-accent {
+    -fx-background-color: -color-accent-subtle;
+    -fx-text-fill: -color-accent-fg;
+}
+
+.badge.badge-success {
+    -fx-background-color: -color-success-subtle;
+    -fx-text-fill: -color-success-fg;
+}
+
+.goal-cell {
+    -fx-padding: 10 8 10 8;
+    -fx-border-color: transparent transparent -color-border-muted transparent;
+}
+
+.goal-cell:empty {
+    -fx-border-color: transparent;
+}
+
+.goal-title {
+    -fx-font-weight: bold;
+}
+
+.goal-icon {
+    -fx-icon-size: 20px;
+}
+
+.goal-when {
+    -fx-text-fill: -color-fg-muted;
+}
+
+:overdue .goal-when,
+.goal-overdue {
+    -fx-text-fill: -color-danger-fg;
+}
+
+:closed .goal-title {
+    -fx-text-fill: -color-fg-muted;
+}
+
+:closed .progress-bar {
+    -fx-opacity: 0.6;
+}
+
+.goal-indicator {
+    -fx-text-fill: -color-accent-fg;
+}
+
+.goal-indicator .ikonli-font-icon {
+    -fx-icon-color: -color-accent-fg;
+}
+
+/* ------------------------------------------------------------------ revisión semanal */
+
+.step-bar {
+    -fx-alignment: center-left;
+    -fx-padding: 0 0 2 0;
+    -fx-border-color: transparent transparent -color-border-muted transparent;
+}
+
+.step-button {
+    -fx-text-fill: -color-fg-muted;
+    -fx-background-radius: 6 6 0 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 2 0;
+}
+
+.step-button .ikonli-font-icon {
+    -fx-icon-color: -color-fg-muted;
+}
+
+.step-button:done {
+    -fx-text-fill: -color-fg-default;
+}
+
+.step-button:current {
+    -fx-text-fill: -color-accent-fg;
+    -fx-font-weight: bold;
+    -fx-border-color: transparent transparent -color-accent-emphasis transparent;
+}
+
+.step-button:current .ikonli-font-icon {
+    -fx-icon-color: -color-accent-fg;
+}
+
+.priority-number {
+    -fx-background-color: -color-accent-emphasis;
+    -fx-text-fill: -color-fg-emphasis;
+    -fx-background-radius: 20;
+    -fx-min-width: 22;
+    -fx-min-height: 22;
+    -fx-max-height: 22;
+    -fx-alignment: center;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+}
+
+.priority-chip {
+    -fx-background-color: -color-accent-subtle;
+    -fx-background-radius: 12;
+    -fx-padding: 2 10 2 3;
+    -fx-graphic-text-gap: 6;
+}
+
+.priority-chip:done {
+    -fx-strikethrough: true;
+    -fx-text-fill: -color-fg-muted;
+    -fx-background-color: -color-neutral-subtle;
+}
+
+.priority-chip:done .priority-number {
+    -fx-background-color: -color-success-emphasis;
+}
+
+.priorities-title {
+    -fx-graphic-text-gap: 4;
+}
+
+.priorities-box {
+    -fx-padding: 6 0 0 0;
+}
+
+.step-hint {
+    -fx-text-fill: -color-fg-muted;
+}
+
+.unscheduled-column {
+    -fx-background-color: -color-bg-default;
+    -fx-border-style: dashed;
+}
+
+.history-cell {
+    -fx-padding: 8 6 8 6;
+    -fx-border-color: transparent transparent -color-border-muted transparent;
+}
+
+.history-cell:empty {
+    -fx-border-color: transparent;
+}
+
+.history-week {
+    -fx-font-weight: bold;
+}
+
+:current .history-week {
+    -fx-text-fill: -color-accent-fg;
+}

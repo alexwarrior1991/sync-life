@@ -68,6 +68,9 @@ public class TaskListCell extends ListCell<Task> {
     /** "2/5" de la lista de comprobación y "50 min / 1 h" de tiempo registrado. */
     private final Label checklist = new Label(null, new FontIcon("mdi2c-checkbox-marked-outline"));
     private final Label tracked = new Label(null, new FontIcon("mdi2c-clock-outline"));
+    /** Objetivo al que contribuye la tarea. */
+    private final Label goal = new Label(null, new FontIcon("mdi2b-bullseye-arrow"));
+    private final Tooltip goalTip = new Tooltip();
     private final FontIcon pomodoroIcon = new FontIcon("mdi2t-timer-outline");
     private final FontIcon routineIcon = new FontIcon("mdi2r-repeat");
     private final Label priority = new Label();
@@ -100,7 +103,12 @@ public class TaskListCell extends ListCell<Task> {
         Tooltip.install(checklist, new Tooltip("Pasos hechos de la lista de comprobación"));
         Tooltip.install(tracked, new Tooltip("Tiempo real registrado / estimado"));
 
-        HBox details = compact ? new HBox(8, meta, checklist) : new HBox(8, meta, checklist, tracked, due);
+        goal.getStyleClass().addAll("task-indicator", "goal-indicator");
+        goal.setMinWidth(0);
+        goal.setMaxWidth(170);
+        goal.setTooltip(goalTip);
+
+        HBox details = compact ? new HBox(8, meta, checklist) : new HBox(8, meta, checklist, tracked, goal, due);
         details.setAlignment(Pos.CENTER_LEFT);
         details.setMinWidth(0);
         meta.setMinWidth(0);
@@ -224,6 +232,14 @@ public class TaskListCell extends ListCell<Task> {
             tracked.getStyleClass().add("over");
         }
 
+        boolean hasGoal = task.getGoal() != null && !compact && actions.showsGoal();
+        goal.setVisible(hasGoal);
+        goal.setManaged(hasGoal);
+        if (hasGoal) {
+            goal.setText(task.getGoal().getTitle());
+            goalTip.setText("Objetivo: " + task.getGoal().getTitle());
+        }
+
         boolean pomodoro = actions.isPomodoroTask(task);
         pomodoroIcon.setVisible(pomodoro);
         pomodoroIcon.setManaged(pomodoro);
@@ -301,6 +317,12 @@ public class TaskListCell extends ListCell<Task> {
             return menu;
         }
 
+        if (task.getGoal() != null) {
+            MenuItem unlink = new MenuItem("Quitar del objetivo «" + task.getGoal().getTitle() + "»",
+                    new FontIcon("mdi2l-link-variant-off"));
+            unlink.setOnAction(e -> actions.unlinkGoal(task));
+            menu.getItems().add(unlink);
+        }
         if (task.isOpen()) {
             menu.getItems().add(quadrantMenu(task, actions));
             menu.getItems().add(new SeparatorMenuItem());

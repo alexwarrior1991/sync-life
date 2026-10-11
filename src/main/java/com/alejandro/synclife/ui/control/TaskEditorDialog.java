@@ -4,6 +4,7 @@ import com.alejandro.synclife.AppContext;
 import com.alejandro.synclife.controller.TaskEditorController;
 import com.alejandro.synclife.model.ChecklistItem;
 import com.alejandro.synclife.model.entity.Category;
+import com.alejandro.synclife.model.entity.Goal;
 import com.alejandro.synclife.model.entity.Task;
 import com.alejandro.synclife.model.entity.TimeEntry;
 import com.alejandro.synclife.ui.Dialogs;
@@ -27,7 +28,8 @@ import java.util.List;
 public final class TaskEditorDialog {
 
     /** Lo que necesita el formulario además de la tarea; se carga en el hilo de base de datos. */
-    public record EditorData(List<Category> categories, List<ChecklistItem> checklist, List<TimeEntry> timeEntries) {
+    public record EditorData(List<Category> categories, List<Goal> goals, List<ChecklistItem> checklist,
+                             List<TimeEntry> timeEntries) {
     }
 
     /** Lo que el usuario decidió: guardar la tarea editada (con su lista de comprobación) o eliminarla. */
@@ -43,10 +45,11 @@ public final class TaskEditorDialog {
     /** Carga lo necesario para editar {@code task} (o crear una, si es null). Llamar en el hilo de BD. */
     public static EditorData load(AppContext context, Task task) {
         List<Category> categories = context.categories().findAll(false);
+        List<Goal> goals = context.goals().findOpen();
         if (task == null) {
-            return new EditorData(categories, List.of(), List.of());
+            return new EditorData(categories, goals, List.of(), List.of());
         }
-        return new EditorData(categories, context.tasks().checklist(task.getId()),
+        return new EditorData(categories, goals, context.tasks().checklist(task.getId()),
                 context.timeTracking().entries(task.getId()));
     }
 
@@ -56,8 +59,14 @@ public final class TaskEditorDialog {
      */
     public static void open(Window owner, AppContext context, Task task, LocalDate defaultDate,
                             Runnable refresh) {
+        open(owner, context, task, defaultDate, null, refresh);
+    }
+
+    /** Como {@link #open(Window, AppContext, Task, LocalDate, Runnable)}; una tarea nueva nace en {@code defaultGoal}. */
+    public static void open(Window owner, AppContext context, Task task, LocalDate defaultDate, Goal defaultGoal,
+                            Runnable refresh) {
         FxAsync.run(() -> load(context, task), data ->
-                create(owner, context, task, defaultDate, data).showAndWait().ifPresent(result -> {
+                create(owner, context, task, defaultDate, defaultGoal, data).showAndWait().ifPresent(result -> {
                     if (result.delete()) {
                         if (Dialogs.confirm("¿Eliminar la tarea?",
                                 "«" + result.task().getTitle() + "» se eliminará definitivamente.", "Eliminar")) {
@@ -76,10 +85,19 @@ public final class TaskEditorDialog {
     /** Crea el diálogo sin mostrarlo. */
     public static Dialog<EditorResult> create(Window owner, AppContext context, Task task, LocalDate defaultDate,
                                               EditorData data) {
+        return create(owner, context, task, defaultDate, null, data);
+    }
+
+    public static Dialog<EditorResult> create(Window owner, AppContext context, Task task, LocalDate defaultDate,
+                                              Goal defaultGoal, EditorData data) {
         ViewLoader.Loaded<TaskEditorController> loaded = ViewLoader.load(context, "task-editor.fxml");
         TaskEditorController form = loaded.controller();
         form.setCategories(data.categories());
+        form.setGoals(data.goals(), task != null ? task.getGoal() : defaultGoal);
         form.edit(task, defaultDate, data.checklist(), data.timeEntries());
+        if (task == null && defaultGoal != null) {
+            form.useArea(defaultGoal.getArea());
+        }
 
         Dialog<EditorResult> dialog = new Dialog<>();
         if (owner != null) {

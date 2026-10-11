@@ -46,6 +46,11 @@ public class Task extends BaseEntity {
     @JoinColumn(name = "routine_id")
     private Routine routine;
 
+    /** Objetivo a largo plazo al que contribuye (opcional; puede ser de otra área). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "goal_id")
+    private Goal goal;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TaskStatus status = TaskStatus.PENDIENTE;
@@ -180,6 +185,14 @@ public class Task extends BaseEntity {
 
     public void setRoutine(Routine routine) {
         this.routine = routine;
+    }
+
+    public Goal getGoal() {
+        return goal;
+    }
+
+    public void setGoal(Goal goal) {
+        this.goal = goal;
     }
 
     public TaskStatus getStatus() {

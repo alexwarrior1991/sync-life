@@ -3,6 +3,9 @@ package com.alejandro.synclife.ui;
 import com.alejandro.synclife.AppContext;
 import com.alejandro.synclife.config.AppSettings.ThemeMode;
 import com.alejandro.synclife.controller.MainController;
+import com.alejandro.synclife.controller.ReviewController;
+import com.alejandro.synclife.controller.WeekController;
+import com.alejandro.synclife.model.entity.Goal;
 import com.alejandro.synclife.model.entity.Task;
 import com.alejandro.synclife.model.enums.Area;
 import com.alejandro.synclife.model.enums.Quadrant;
@@ -19,6 +22,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
+import javafx.scene.control.TextArea;
 import javafx.scene.image.PixelFormat;
 import javafx.scene.image.WritableImage;
 import javafx.stage.Stage;
@@ -151,6 +155,54 @@ public final class SmokeRunner {
                 }
             });
         });
+        // Revisión semanal: recorrer los cinco pasos, escribir notas y guardar desde la interfaz
+        steps.add(() -> main.navigator().navigate(View.REVISION));
+        for (int i = 0; i < 5; i++) {
+            int index = i;
+            steps.add(() -> review().goToStep(index));
+            steps.add(() -> shot("revision-" + (index + 1)));
+        }
+        steps.add(() -> {
+            if (!(stage.getScene().lookup("#review-notes") instanceof TextArea notes)) {
+                fail("no se encuentra el campo de notas de la revisión");
+                return;
+            }
+            notes.setText("Notas de la prueba de humo");
+            review().save();
+        });
+        steps.add(() -> FxAsync.run(() -> context.reviews().find(context.reviews().defaultPlannedMonday()), saved -> {
+            if (saved.isEmpty() || !"Notas de la prueba de humo".equals(saved.get().getNotes())) {
+                fail("la revisión semanal no se guardó desde el asistente");
+            }
+        }));
+        // La semana planificada muestra sus prioridades
+        steps.add(() -> {
+            main.navigator().navigate(View.SEMANA);
+            ((WeekController) main.navigator().controller(View.SEMANA)).showWeek(context.reviews().defaultPlannedMonday());
+        });
+        steps.add(() -> {
+            if (stage.getScene().getRoot().lookupAll(".priority-chip").isEmpty()) {
+                fail("la semana planificada no muestra las prioridades de la revisión");
+            }
+            shot("semana-prioridades");
+        });
+        steps.add(() -> ((WeekController) main.navigator().controller(View.SEMANA)).showWeek(context.today()));
+        // Objetivos: el avance cuenta las tareas vinculadas completadas
+        steps.add(() -> FxAsync.run(() -> {
+            Goal goal = context.goals().save(new Goal("Objetivo de la prueba de humo", Area.VIDA));
+            Task a = context.tasks().quickAdd("Paso 1 del objetivo", Area.VIDA, null, null);
+            Task b = context.tasks().quickAdd("Paso 2 del objetivo", Area.VIDA, null, null);
+            context.goals().link(goal.getId(), List.of(a.getId(), b.getId()));
+            context.tasks().toggleDone(a.getId());
+            var progress = context.goals().progress(goal.getId()).orElseThrow();
+            context.goals().delete(goal.getId());
+            context.tasks().deleteAll(List.of(a.getId(), b.getId()));
+            return progress.done() == 1 && progress.total() == 2;
+        }, ok -> {
+            if (!ok) {
+                fail("el avance del objetivo no cuenta bien sus tareas");
+            }
+        }));
         // Matriz: clasificar una tarea y comprobar que aparece en su cuadrante
         steps.add(() -> FxAsync.run(() -> {
             Task task = context.tasks().quickAdd("Clasificar en la matriz", Area.TRABAJO, null, null);
@@ -224,6 +276,10 @@ public final class SmokeRunner {
         steps.add(() -> shot("matriz-oscuro"));
         steps.add(() -> Theme.apply(context.settings().getTheme()));
         next();
+    }
+
+    private ReviewController review() {
+        return main.navigator().controller(View.REVISION);
     }
 
     private void next() {
