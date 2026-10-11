@@ -19,6 +19,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;
@@ -133,6 +134,18 @@ public class TaskService {
                 .toList());
     }
 
+    /** Listas de comprobación de varias tareas, por id de tarea (las que no tienen, no aparecen). */
+    public Map<Long, List<ChecklistItem>> checklists(Collection<Long> taskIds) {
+        return sessionFactory.fromTransaction(s -> {
+            Map<Long, List<ChecklistItem>> byTask = new HashMap<>();
+            for (Subtask sub : subtaskDao.findByTasks(s, taskIds)) {
+                byTask.computeIfAbsent(sub.getTask().getId(), id -> new ArrayList<>())
+                        .add(new ChecklistItem(sub.getId(), sub.getTitle(), sub.isDone()));
+            }
+            return byTask;
+        });
+    }
+
     /** Tareas puntuales abiertas repartidas por cuadrante ({@code area == null} = todas las áreas). */
     public MatrixData matrix(Area area) {
         List<Task> open = sessionFactory.fromTransaction(s -> taskDao.findOpenForMatrix(s, area));
@@ -169,8 +182,8 @@ public class TaskService {
         validate(task);
         List<ChecklistItem> items = checklist == null ? null : validChecklist(checklist);
         return sessionFactory.fromTransaction(s -> {
+            Task current = task.isNew() ? null : s.find(Task.class, task.getId());
             if (!task.isNew()) {
-                Task current = s.find(Task.class, task.getId());
                 if (current == null) {
                     throw new ValidationException("La tarea ya no existe.");
                 }
@@ -180,6 +193,7 @@ public class TaskService {
                 }
                 task.setRoutine(current.getRoutine()); // el vínculo con la rutina no se edita desde la UI
             }
+            keepReminderState(task, current);
             if (task.isRoutineInstance()) {
                 if (items != null && !items.isEmpty()) {
                     throw new ValidationException(ROUTINE_CHECKLIST_ERROR);
@@ -237,7 +251,7 @@ public class TaskService {
             if (task.isRoutineInstance()) {
                 throw new ValidationException(ROUTINE_MOVE_ERROR);
             }
-            task.setScheduledDate(date);
+            moveTo(task, date);
         });
     }
 
@@ -248,7 +262,7 @@ public class TaskService {
             for (Long id : ids) {
                 Task task = s.find(Task.class, id);
                 if (task != null && !task.isRoutineInstance()) {
-                    task.setScheduledDate(date);
+                    moveTo(task, date);
                     moved++;
                 }
             }
@@ -326,6 +340,46 @@ public class TaskService {
     }
 
     // ---------------------------------------------------------------- auxiliares
+
+    /**
+     * Cambia el día de la tarea; su recordatorio se desplaza los mismos días (y vuelve a estar pendiente).
+     * Sin fecha, la tarea se queda sin recordatorio.
+     */
+    private void moveTo(Task task, LocalDate date) {
+        LocalDate previous = task.getScheduledDate();
+        task.setScheduledDate(date);
+        if (task.getRemindAt() == null || Objects.equals(previous, date)) {
+            return;
+        }
+        if (date == null) {
+            task.setRemindAt(null);
+        } else if (previous != null) {
+            task.setRemindAt(task.getRemindAt().plusDays(ChronoUnit.DAYS.between(previous, date)));
+        }
+        task.setRemindedAt(null);
+        skipPastReminder(task);
+    }
+
+    /**
+     * El momento del último aviso lo decide el servidor, no el formulario: si la hora del recordatorio no
+     * cambia, se conserva (guardar con el editor abierto no hace que vuelva a sonar); si cambia, el aviso
+     * vuelve a quedar pendiente. Un recordatorio ya pasado no se dispara.
+     */
+    private void keepReminderState(Task task, Task current) {
+        if (current != null && Objects.equals(current.getRemindAt(), task.getRemindAt())) {
+            task.setRemindedAt(current.getRemindedAt());
+            return;
+        }
+        task.setRemindedAt(null);
+        skipPastReminder(task);
+    }
+
+    private void skipPastReminder(Task task) {
+        LocalDateTime now = now().withNano(0);
+        if (task.getRemindAt() != null && task.getRemindAt().isBefore(now.minusMinutes(1))) {
+            task.setRemindedAt(now);
+        }
+    }
 
     private Task update(long id, java.util.function.Consumer<Task> change) {
         return sessionFactory.fromTransaction(s -> {

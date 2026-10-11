@@ -13,9 +13,11 @@ import com.alejandro.synclife.persistence.DatabaseMigrator;
 import com.alejandro.synclife.persistence.HibernateUtil;
 import com.alejandro.synclife.service.CategoryService;
 import com.alejandro.synclife.service.GoalService;
+import com.alejandro.synclife.service.ReminderService;
 import com.alejandro.synclife.service.WeeklyReviewService;
 import com.alejandro.synclife.service.RoutineService;
 import com.alejandro.synclife.service.StatsService;
+import com.alejandro.synclife.service.TaskCsvService;
 import com.alejandro.synclife.service.TaskService;
 import com.alejandro.synclife.service.TimeTrackingService;
 import org.hibernate.SessionFactory;
@@ -47,6 +49,8 @@ public final class AppContext implements AutoCloseable {
     private final TimeTrackingService timeTrackingService;
     private final GoalService goalService;
     private final WeeklyReviewService reviewService;
+    private final ReminderService reminderService;
+    private final TaskCsvService csvService;
 
     private AppContext(Path dataDir, Clock clock) {
         try {
@@ -75,6 +79,8 @@ public final class AppContext implements AutoCloseable {
         this.goalService = new GoalService(sessionFactory, new GoalDao(), taskDao, clock);
         this.reviewService = new WeeklyReviewService(sessionFactory, new WeeklyReviewDao(), taskDao, timeEntryDao,
                 goalService, clock);
+        this.reminderService = new ReminderService(sessionFactory, taskDao, clock);
+        this.csvService = new TaskCsvService(taskService, categoryService, goalService);
     }
 
     /** Crea un contexto independiente (usado por los tests). */
@@ -148,6 +154,14 @@ public final class AppContext implements AutoCloseable {
 
     public WeeklyReviewService reviews() {
         return reviewService;
+    }
+
+    public ReminderService reminders() {
+        return reminderService;
+    }
+
+    public TaskCsvService csv() {
+        return csvService;
     }
 
     @Override

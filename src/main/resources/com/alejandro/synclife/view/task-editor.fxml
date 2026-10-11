@@ -73,18 +73,25 @@
             <TimeField fx:id="timeField" minWidth="-Infinity"/>
         </HBox>
 
-        <Label text="Duración" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
-        <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="7" GridPane.columnIndex="1">
+        <Label fx:id="reminderLabel" text="Recordatorio" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
+        <HBox fx:id="reminderRow" spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="7" GridPane.columnIndex="1">
+            <ComboBox fx:id="reminderCombo" prefWidth="230" minWidth="-Infinity"/>
+            <TimeField fx:id="reminderTimeField" minWidth="-Infinity"/>
+            <Label fx:id="reminderHint" styleClass="text-muted, text-small" wrapText="true" minWidth="0"/>
+        </HBox>
+
+        <Label text="Duración" GridPane.rowIndex="8" GridPane.columnIndex="0"/>
+        <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="8" GridPane.columnIndex="1">
             <Spinner fx:id="estimateSpinner" editable="true" prefWidth="110" minWidth="-Infinity"/>
             <Label text="minutos (estimación)" styleClass="text-muted" minWidth="-Infinity"/>
         </HBox>
 
-        <Label text="Fecha límite" GridPane.rowIndex="8" GridPane.columnIndex="0"/>
+        <Label text="Fecha límite" GridPane.rowIndex="9" GridPane.columnIndex="0"/>
         <DatePicker fx:id="duePicker" promptText="Sin fecha límite" prefWidth="210"
-                    GridPane.rowIndex="8" GridPane.columnIndex="1"/>
+                    GridPane.rowIndex="9" GridPane.columnIndex="1"/>
 
-        <Label fx:id="timeLabel" text="Tiempo real" GridPane.rowIndex="9" GridPane.columnIndex="0"/>
-        <HBox fx:id="timeRow" spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="9" GridPane.columnIndex="1">
+        <Label fx:id="timeLabel" text="Tiempo real" GridPane.rowIndex="10" GridPane.columnIndex="0"/>
+        <HBox fx:id="timeRow" spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="10" GridPane.columnIndex="1">
             <Label fx:id="trackedLabel" minWidth="0">
                 <graphic><FontIcon iconLiteral="mdi2c-clock-outline"/></graphic>
             </Label>

@@ -3,29 +3,38 @@ package com.alejandro.synclife.controller;
 import com.alejandro.synclife.AppContext;
 import com.alejandro.synclife.SyncLifeApp;
 import com.alejandro.synclife.config.AppSettings;
+import com.alejandro.synclife.config.AppSettings.NotificationSettings;
 import com.alejandro.synclife.config.AppSettings.PomodoroSettings;
 import com.alejandro.synclife.config.AppSettings.ThemeMode;
+import com.alejandro.synclife.model.TaskFilter;
 import com.alejandro.synclife.persistence.DatabaseBackup;
 import com.alejandro.synclife.service.DemoData;
 import com.alejandro.synclife.ui.AppUi;
+import com.alejandro.synclife.ui.Choice;
+import com.alejandro.synclife.ui.CsvTransfer;
+import com.alejandro.synclife.ui.ReminderOptions;
+import com.alejandro.synclife.ui.Ui;
+import com.alejandro.synclife.ui.tray.TrayIntegration;
 import com.alejandro.synclife.ui.Dialogs;
 import com.alejandro.synclife.ui.FxAsync;
 import com.alejandro.synclife.ui.Theme;
 import com.alejandro.synclife.ui.ViewController;
 import javafx.fxml.FXML;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.ToggleGroup;
 import javafx.stage.FileChooser;
+import javafx.stage.Window;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 
-/** Pantalla "Ajustes": tema, horizonte de rutinas, copia de seguridad y datos de ejemplo. */
+/** Pantalla "Ajustes": tema, rutinas, Pomodoro, notificaciones, copia de seguridad, CSV y datos de ejemplo. */
 public class SettingsController implements ViewController {
 
     private final AppContext context;
@@ -40,6 +49,11 @@ public class SettingsController implements ViewController {
     @FXML private Spinner<Integer> everySpinner;
     @FXML private CheckBox autoBreakCheck;
     @FXML private CheckBox soundCheck;
+    @FXML private CheckBox trayCheck;
+    @FXML private Label trayHint;
+    @FXML private CheckBox systemNotificationsCheck;
+    @FXML private CheckBox reminderSoundCheck;
+    @FXML private ComboBox<Choice<Integer>> defaultReminderCombo;
     @FXML private Label dataDirLabel;
     @FXML private Label versionLabel;
     @FXML private Label runtimeLabel;
@@ -68,6 +82,7 @@ public class SettingsController implements ViewController {
         horizonSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(
                 AppSettings.MIN_HORIZON, AppSettings.MAX_HORIZON, settings.getRoutineHorizonDays()));
         buildPomodoroSettings(settings.getPomodoro());
+        buildNotificationSettings(settings.getNotifications());
         dataDirLabel.setText(context.dataDir().toString());
 
         String version = SyncLifeApp.class.getPackage().getImplementationVersion();
@@ -102,6 +117,40 @@ public class SettingsController implements ViewController {
         }
     }
 
+    private void buildNotificationSettings(NotificationSettings notifications) {
+        boolean traySupported = TrayIntegration.isSupported();
+        trayCheck.setSelected(notifications.minimizeToTray());
+        trayCheck.setDisable(!traySupported);
+        trayHint.setText(traySupported
+                ? "Así los recordatorios y el pomodoro siguen funcionando con la ventana cerrada. Para salir del todo: «Salir» en el icono de la bandeja."
+                : "Este escritorio no tiene bandeja del sistema: al cerrar la ventana se sale de SyncLife.");
+        systemNotificationsCheck.setSelected(notifications.systemNotifications());
+        systemNotificationsCheck.setDisable(!traySupported);
+        reminderSoundCheck.setSelected(notifications.sound());
+        defaultReminderCombo.getItems().setAll(ReminderOptions.forRoutines());
+        Ui.selectChoice(defaultReminderCombo, notifications.defaultReminderMinutes());
+        trayCheck.selectedProperty().addListener((obs, old, value) -> {
+            saveNotifications();
+            if (AppUi.isInstalled()) {
+                if (value) {
+                    AppUi.tray().install();
+                } else {
+                    AppUi.tray().uninstall();
+                }
+            }
+        });
+        systemNotificationsCheck.selectedProperty().addListener((obs, old, value) -> saveNotifications());
+        reminderSoundCheck.selectedProperty().addListener((obs, old, value) -> saveNotifications());
+        defaultReminderCombo.valueProperty().addListener((obs, old, value) -> saveNotifications());
+    }
+
+    private void saveNotifications() {
+        context.settings().setNotifications(new NotificationSettings(trayCheck.isSelected(),
+                systemNotificationsCheck.isSelected(), reminderSoundCheck.isSelected(),
+                Ui.choiceValue(defaultReminderCombo)));
+        saveSettings();
+    }
+
     @Override
     public void onShow() {
         horizonSpinner.getValueFactory().setValue(context.settings().getRoutineHorizonDays());
@@ -133,13 +182,32 @@ public class SettingsController implements ViewController {
         chooser.setTitle("Guardar copia de seguridad");
         chooser.setInitialFileName("synclife-" + context.today() + ".db");
         chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Base de datos SQLite", "*.db"));
-        File file = chooser.showSaveDialog(dataDirLabel.getScene().getWindow());
+        File file = chooser.showSaveDialog(window());
         if (file == null) {
             return;
         }
         Path target = file.toPath();
         FxAsync.runVoid(() -> DatabaseBackup.backupTo(context.jdbcUrl(), target),
                 () -> Dialogs.info("Copia de seguridad creada", target.toString()));
+    }
+
+    @FXML
+    private void exportCsv() {
+        CsvTransfer.exportTasks(window(), context, "synclife-tareas-" + context.today() + ".csv",
+                () -> context.tasks().search(TaskFilter.all()));
+    }
+
+    @FXML
+    private void importCsv() {
+        CsvTransfer.importTasks(window(), context, () -> {
+            if (AppUi.isInstalled()) {
+                AppUi.navigator().refreshCurrent();
+            }
+        });
+    }
+
+    private Window window() {
+        return dataDirLabel.getScene().getWindow();
     }
 
     @FXML

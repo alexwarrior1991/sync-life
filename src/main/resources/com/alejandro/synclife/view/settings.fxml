@@ -2,6 +2,7 @@
 
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.ScrollPane?>
@@ -13,7 +14,7 @@
 
 <ScrollPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.alejandro.synclife.controller.SettingsController"
-            fitToWidth="true" styleClass="edge-to-edge">
+            id="settings-page" fitToWidth="true" styleClass="edge-to-edge">
     <VBox styleClass="page" spacing="16">
         <Label text="Ajustes" styleClass="title-2"/>
 
@@ -71,6 +72,20 @@
         </VBox>
 
         <VBox styleClass="panel" spacing="10" maxWidth="760">
+            <Label text="Notificaciones" styleClass="title-4"/>
+            <CheckBox fx:id="trayCheck" text="Al cerrar la ventana, seguir en la bandeja del sistema"/>
+            <Label fx:id="trayHint" styleClass="text-muted, text-small" wrapText="true"/>
+            <CheckBox fx:id="systemNotificationsCheck" text="Avisar también con notificaciones del sistema (si la ventana no está a la vista)"/>
+            <CheckBox fx:id="reminderSoundCheck" text="Sonido con cada recordatorio"/>
+            <HBox spacing="8" styleClass="settings-row">
+                <Label text="Recordatorio para las tareas nuevas:" minWidth="-Infinity"/>
+                <ComboBox fx:id="defaultReminderCombo" prefWidth="200"/>
+            </HBox>
+            <Label text="Los recordatorios se eligen en el editor de cada tarea (y en cada rutina). SyncLife los comprueba cada 30 segundos mientras está abierta, también desde la bandeja."
+                   styleClass="text-muted, text-small" wrapText="true"/>
+        </VBox>
+
+        <VBox styleClass="panel" spacing="10" maxWidth="760">
             <Label text="Datos" styleClass="title-4"/>
             <HBox spacing="8" styleClass="settings-row">
                 <Label text="Carpeta de datos:" minWidth="-Infinity"/>
@@ -86,6 +101,16 @@
                 <Button text="Cargar datos de ejemplo" onAction="#loadDemo" styleClass="flat"/>
             </HBox>
             <Label text="Todo se guarda en un único fichero SQLite (synclife.db). Para trasladarlo a otro equipo, copia la carpeta o usa la copia de seguridad."
+                   styleClass="text-muted, text-small" wrapText="true"/>
+            <HBox spacing="8">
+                <Button text="Exportar tareas (CSV)…" onAction="#exportCsv">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-export-outline"/></graphic>
+                </Button>
+                <Button text="Importar CSV…" onAction="#importCsv">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-import-outline"/></graphic>
+                </Button>
+            </HBox>
+            <Label text="El CSV se abre con Excel o LibreOffice. Al importar verás antes qué se va a crear; solo se añaden tareas, nunca se modifican ni borran las que tienes. Para exportar solo una parte, usa «Exportar» en Tareas con los filtros que quieras."
                    styleClass="text-muted, text-small" wrapText="true"/>
         </VBox>
 

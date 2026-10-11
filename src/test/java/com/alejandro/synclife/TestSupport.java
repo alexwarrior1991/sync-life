@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +33,11 @@ public final class TestSupport {
 
     public static AppContext context(Path dir, LocalDate today) {
         return AppContext.create(dir, clockAt(today));
+    }
+
+    /** Contexto con el reloj parado en un instante concreto (para probar recordatorios). */
+    public static AppContext contextAt(Path dir, LocalDateTime now) {
+        return AppContext.create(dir, Clock.fixed(now.atZone(ZONE).toInstant(), ZONE));
     }
 
     /** Ejecuta una consulta SQL nativa y devuelve la primera columna de cada fila como texto. */

@@ -54,6 +54,9 @@ public class Routine extends BaseEntity {
 
     private boolean active = true;
 
+    /** Avisar estos minutos antes de cada tarea generada (null = sin aviso). */
+    private Integer remindMinutesBefore;
+
     @Column(nullable = false)
     private LocalDate startDate;
 
@@ -92,6 +95,9 @@ public class Routine extends BaseEntity {
         task.setScheduledDate(date);
         task.setStartTime(startTime);
         task.setEstimatedMinutes(durationMinutes);
+        if (remindMinutesBefore != null) {
+            task.setRemindAt(task.reminderBase().minusMinutes(remindMinutesBefore));
+        }
         return task;
     }
 
@@ -166,6 +172,14 @@ public class Routine extends BaseEntity {
 
     public void setPriority(Priority priority) {
         this.priority = priority;
+    }
+
+    public Integer getRemindMinutesBefore() {
+        return remindMinutesBefore;
+    }
+
+    public void setRemindMinutesBefore(Integer remindMinutesBefore) {
+        this.remindMinutesBefore = remindMinutesBefore;
     }
 
     public boolean isActive() {

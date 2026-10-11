@@ -64,7 +64,7 @@ public final class DemoData {
                 today, null, 20, null, null, null, null);
         task(tasks, byName, "Enviar presupuesto al cliente", Area.TRABAJO, "Correo y gestión", Priority.URGENTE,
                 today.minusDays(1), null, 30, today, null, Quadrant.HACER_YA, null);
-        task(tasks, byName, "Llamar al dentista", Area.VIDA, "Salud", Priority.MEDIA,
+        Task dentist = task(tasks, byName, "Llamar al dentista", Area.VIDA, "Salud", Priority.MEDIA,
                 today.plusDays(1), null, 10, today.plusDays(3), null, null, null);
         Task sprint = task(tasks, byName, "Planificar el próximo sprint", Area.TRABAJO, "Reuniones", Priority.ALTA,
                 today.plusDays(2), LocalTime.of(11, 0), 60, null, null, Quadrant.PLANIFICAR,
@@ -95,6 +95,12 @@ public final class DemoData {
                 Priority.ALTA, today, null, 50, null, null, Quadrant.HACER_YA, null);
         time.record(slides.getId(), today.atTime(7, 0), today.atTime(7, 50), 50, TimeSource.POMODORO);
         tasks.toggleDone(slides.getId());
+
+        // Recordatorios: el dentista mañana a primera hora y el sprint 15 minutos antes
+        dentist.setRemindAt(dentist.reminderBase());
+        tasks.save(dentist);
+        sprint.setRemindAt(sprint.reminderBase().minusMinutes(15));
+        tasks.save(sprint);
 
         // Objetivos a largo plazo con tareas vinculadas (una de otra área: los objetivos no se limitan a la suya)
         GoalService goals = context.goals();

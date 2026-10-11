@@ -43,7 +43,7 @@ class MigrationTest {
     @Test
     void flywayAppliesAllMigrationsAndSeedsCategories() {
         assertThat(TestSupport.single(ctx, "select max(cast(version as integer)) from flyway_schema_history"))
-                .isEqualTo("7");
+                .isEqualTo("8");
         assertThat(TestSupport.column(ctx, "select area || ':' || count(*) from category group by area order by area"))
                 .containsExactly("DEPORTE:3", "TRABAJO:4", "VIDA:4");
     }
