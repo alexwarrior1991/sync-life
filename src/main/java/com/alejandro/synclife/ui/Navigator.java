@@ -28,6 +28,15 @@ public class Navigator {
         refreshCurrent();
     }
 
+    /** Descarta todas las pantallas creadas (p. ej. tras borrar todos los datos) y vuelve a crear la actual. */
+    public void reset() {
+        cache.clear();
+        View view = current.get();
+        if (view != null) {
+            navigate(view);
+        }
+    }
+
     public void refreshCurrent() {
         View view = current.get();
         if (view != null && cache.get(view).controller() instanceof ViewController controller) {
