@@ -29,6 +29,9 @@ import java.time.temporal.ChronoUnit;
 @Table(name = "task")
 public class Task extends BaseEntity {
 
+    /** Para avisar "N minutos antes" de una tarea sin hora se toma esta. */
+    public static final LocalTime DEFAULT_REMINDER_TIME = LocalTime.of(9, 0);
+
     @Column(nullable = false, length = 200)
     private String title;
 
@@ -71,6 +74,12 @@ public class Task extends BaseEntity {
     private LocalDate dueDate;
 
     private LocalDateTime completedAt;
+
+    /** Cuándo avisar (null = sin recordatorio). */
+    private LocalDateTime remindAt;
+
+    /** Cuándo se mostró el aviso; null = pendiente de avisar. Así cada aviso sale una sola vez. */
+    private LocalDateTime remindedAt;
 
     /** Marcas de la matriz de Eisenhower; null = sin clasificar. */
     private Boolean urgent;
@@ -249,6 +258,27 @@ public class Task extends BaseEntity {
 
     public void setCompletedAt(LocalDateTime completedAt) {
         this.completedAt = completedAt;
+    }
+
+    public LocalDateTime getRemindAt() {
+        return remindAt;
+    }
+
+    public void setRemindAt(LocalDateTime remindAt) {
+        this.remindAt = remindAt;
+    }
+
+    public LocalDateTime getRemindedAt() {
+        return remindedAt;
+    }
+
+    public void setRemindedAt(LocalDateTime remindedAt) {
+        this.remindedAt = remindedAt;
+    }
+
+    /** Hora de referencia de los avisos relativos: la de la tarea o, si no tiene, las 9:00 de su día. */
+    public LocalDateTime reminderBase() {
+        return scheduledDate == null ? null : scheduledDate.atTime(startTime == null ? DEFAULT_REMINDER_TIME : startTime);
     }
 
     public Boolean getUrgent() {

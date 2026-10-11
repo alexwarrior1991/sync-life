@@ -653,6 +653,12 @@
     -fx-icon-color: -color-accent-fg;
 }
 
+.reminder-indicator,
+.reminder-indicator .ikonli-font-icon {
+    -fx-text-fill: -color-warning-fg;
+    -fx-icon-color: -color-warning-fg;
+}
+
 /* ------------------------------------------------------------------ revisión semanal */
 
 .step-bar {
@@ -747,4 +753,11 @@
 
 :current .history-week {
     -fx-text-fill: -color-accent-fg;
+}
+
+/* ---------------------------------------------------------------- importar CSV */
+
+.dialog-pane.wide-dialog {
+    -fx-pref-width: 900px;
+    -fx-max-width: 900px;
 }

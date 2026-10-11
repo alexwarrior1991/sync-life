@@ -12,7 +12,12 @@ import com.alejandro.synclife.model.enums.Quadrant;
 import com.alejandro.synclife.model.enums.TaskStatus;
 import com.alejandro.synclife.service.DeleteResult;
 import com.alejandro.synclife.service.DemoData;
+import com.alejandro.synclife.service.ReminderService;
+import com.alejandro.synclife.service.TaskCsvService.ImportOptions;
+import com.alejandro.synclife.service.TaskCsvService.ImportResult;
+import com.alejandro.synclife.service.TaskCsvService.Preview;
 import com.alejandro.synclife.ui.control.ChecklistEditor;
+import com.alejandro.synclife.ui.control.CsvImportDialog;
 import com.alejandro.synclife.ui.control.TaskEditorDialog;
 import com.alejandro.synclife.ui.control.TaskEditorDialog.EditorResult;
 import javafx.animation.PauseTransition;
@@ -46,6 +51,12 @@ import java.util.logging.Logger;
  */
 public final class SmokeRunner {
 
+    private record ReminderCheck(ReminderService.Due due, Task task) {
+    }
+
+    private record CsvCheck(Preview preview, ImportResult result, Preview withProblems) {
+    }
+
     private record EditData(Task task, TaskEditorDialog.EditorData editor) {
     }
 
@@ -58,9 +69,11 @@ public final class SmokeRunner {
     private final Path shotsDir;
     private final Deque<Runnable> steps = new ArrayDeque<>();
     private Dialog<EditorResult> editor;
+    private Dialog<ImportOptions> csvDialog;
     private String originalTitle;
     private int originalChecklist;
     private long pomodoroTaskId;
+    private long reminderTaskId;
     private int pomodoroMinutesBefore;
 
     public SmokeRunner(AppContext context, MainController main, Stage stage) {
@@ -98,6 +111,13 @@ public final class SmokeRunner {
         watchdog.setDaemon(true);
         watchdog.start();
 
+        // El runtime empaquetado debe incluir los datos de idioma (jdk.localedata): fechas en español
+        steps.add(() -> {
+            String day = Formats.dayTitle(java.time.LocalDate.of(2026, 10, 12));
+            if (!day.equals("Lunes, 12 de octubre")) {
+                fail("las fechas no salen en español (¿falta jdk.localedata?): " + day);
+            }
+        });
         steps.add(() -> FxAsync.runVoid(() -> {
             if (context.routines().findAll().isEmpty()) {
                 DemoData.seed(context);
@@ -203,6 +223,70 @@ public final class SmokeRunner {
                 fail("el avance del objetivo no cuenta bien sus tareas");
             }
         }));
+        // Recordatorios: uno vencido ahora aparece como aviso fijo en la ventana
+        steps.add(() -> FxAsync.run(() -> {
+            Task task = new Task("Llamar al proveedor (recordatorio de prueba)", Area.TRABAJO);
+            task.setScheduledDate(context.today());
+            task.setRemindAt(java.time.LocalDateTime.now(context.clock()));
+            return context.tasks().save(task);
+        }, task -> {
+            reminderTaskId = task.getId();
+            main.navigator().navigate(View.HOY);
+            main.reminders().checkNow();
+        }));
+        steps.add(() -> {
+            if (reminderToast().isEmpty()) {
+                fail("el recordatorio vencido no se mostró");
+            }
+            shot("notificacion");
+        });
+        // «Hecha» desde el propio aviso completa la tarea y lo cierra
+        steps.add(() -> reminderToast().flatMap(toast -> toast.getPrimaryActions().stream()
+                .filter(button -> "Hecha".equals(button.getText())).findFirst()).ifPresentOrElse(Button::fire,
+                () -> fail("el recordatorio no ofrece «Hecha»")));
+        steps.add(() -> FxAsync.run(() -> new ReminderCheck(context.reminders().claimDue(),
+                context.tasks().findById(reminderTaskId).orElseThrow()), check -> {
+            if (!check.due().isEmpty()) {
+                fail("un recordatorio se entregó dos veces");
+            }
+            if (check.task().getStatus() != TaskStatus.COMPLETADA || reminderToast().isPresent()) {
+                fail("«Hecha» en el recordatorio no completó la tarea o no cerró el aviso");
+            }
+            FxAsync.runVoid(() -> context.tasks().delete(reminderTaskId), null);
+        }));
+        // CSV: reimportar lo exportado con "omitir idénticas" no crea nada; vista previa con una fila mala y un aviso
+        steps.add(() -> FxAsync.run(() -> {
+            byte[] csv = context.csv().exportAll();
+            Preview preview = context.csv().preview(csv);
+            ImportResult result = context.csv().apply(preview, new ImportOptions(true, true));
+            byte[] extra = "Revisar presupuesto;;Trabajo;;;Altísima\r\n;sin título\r\n"
+                    .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            byte[] withProblems = java.util.Arrays.copyOf(csv, csv.length + extra.length);
+            System.arraycopy(extra, 0, withProblems, csv.length, extra.length);
+            return new CsvCheck(preview, result, context.csv().preview(withProblems));
+        }, check -> {
+            if (!check.preview().errors().isEmpty() || check.preview().rows().isEmpty()) {
+                fail("el CSV exportado no se puede volver a leer: " + check.preview().errors());
+            }
+            if (check.result().created() != 0 || check.result().skippedIdentical() != check.preview().rows().size()) {
+                fail("reimportar el CSV exportado duplicó tareas: " + check.result());
+            }
+            if (check.withProblems().errors().size() != 1 || check.withProblems().warnings().size() != 1) {
+                fail("la vista previa no informa de la fila mala y del aviso: " + check.withProblems().errors()
+                        + " " + check.withProblems().warnings());
+            }
+            csvDialog = CsvImportDialog.create(stage, "synclife-tareas.csv", check.withProblems());
+            csvDialog.show();
+        }));
+        steps.add(() -> shot("importar-csv", csvDialog.getDialogPane().getScene()));
+        steps.add(() -> csvDialog.close());
+        steps.add(() -> main.navigator().navigate(View.AJUSTES));
+        steps.add(() -> {
+            if (stage.getScene().lookup("#settings-page") instanceof javafx.scene.control.ScrollPane page) {
+                page.setVvalue(page.getVmax());
+            }
+        });
+        steps.add(() -> shot("ajustes-datos"));
         // Matriz: clasificar una tarea y comprobar que aparece en su cuadrante
         steps.add(() -> FxAsync.run(() -> {
             Task task = context.tasks().quickAdd("Clasificar en la matriz", Area.TRABAJO, null, null);
@@ -276,6 +360,13 @@ public final class SmokeRunner {
         steps.add(() -> shot("matriz-oscuro"));
         steps.add(() -> Theme.apply(context.settings().getTheme()));
         next();
+    }
+
+    private java.util.Optional<atlantafx.base.controls.Notification> reminderToast() {
+        return stage.getScene().getRoot().lookupAll(".toast").stream()
+                .filter(n -> n instanceof atlantafx.base.controls.Notification notification
+                        && notification.getMessage().contains("recordatorio de prueba"))
+                .map(atlantafx.base.controls.Notification.class::cast).findFirst();
     }
 
     private ReviewController review() {

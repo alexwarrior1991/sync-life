@@ -12,6 +12,7 @@ import com.alejandro.synclife.ui.Choice;
 import com.alejandro.synclife.ui.Dialogs;
 import com.alejandro.synclife.ui.Formats;
 import com.alejandro.synclife.ui.FxAsync;
+import com.alejandro.synclife.ui.ReminderOptions;
 import com.alejandro.synclife.ui.Ui;
 import com.alejandro.synclife.ui.ViewController;
 import com.alejandro.synclife.ui.cell.CategoryChoiceCell;
@@ -61,6 +62,7 @@ public class RoutinesController implements ViewController {
     @FXML private ComboBox<Priority> priorityCombo;
     @FXML private DatePicker startPicker;
     @FXML private DatePicker endPicker;
+    @FXML private ComboBox<Choice<Integer>> remindCombo;
     @FXML private ToggleSwitch activeSwitch;
     @FXML private Label previewLabel;
     @FXML private Button saveButton;
@@ -75,6 +77,7 @@ public class RoutinesController implements ViewController {
         Ui.limitLength(nameField, 120);
         areaCombo.getItems().setAll(Area.values());
         priorityCombo.getItems().setAll(Priority.values());
+        remindCombo.getItems().setAll(ReminderOptions.forRoutines());
         durationSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 480, 0, 5));
         categoryCombo.setCellFactory(list -> new CategoryChoiceCell());
         categoryCombo.setButtonCell(new CategoryChoiceCell());
@@ -143,6 +146,7 @@ public class RoutinesController implements ViewController {
         priorityCombo.setValue(routine.getPriority());
         startPicker.setValue(routine.getStartDate());
         endPicker.setValue(routine.getEndDate());
+        Ui.selectChoice(remindCombo, routine.getRemindMinutesBefore());
         activeSwitch.setSelected(routine.isActive());
         deleteButton.setVisible(true);
         updatePreview();
@@ -162,6 +166,7 @@ public class RoutinesController implements ViewController {
         priorityCombo.setValue(Priority.MEDIA);
         startPicker.setValue(context.today());
         endPicker.setValue(null);
+        remindCombo.getSelectionModel().selectFirst();
         activeSwitch.setSelected(true);
         deleteButton.setVisible(false);
         updatePreview();
@@ -180,6 +185,7 @@ public class RoutinesController implements ViewController {
         target.setPriority(priorityCombo.getValue());
         target.setStartDate(Ui.datePickerValue(startPicker));
         target.setEndDate(Ui.datePickerValue(endPicker));
+        target.setRemindMinutesBefore(Ui.choiceValue(remindCombo));
         target.setActive(activeSwitch.isSelected());
         return target;
     }

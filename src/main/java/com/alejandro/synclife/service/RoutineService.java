@@ -6,12 +6,14 @@ import com.alejandro.synclife.model.DaysOfWeek;
 import com.alejandro.synclife.model.RoutineDay;
 import com.alejandro.synclife.model.entity.Category;
 import com.alejandro.synclife.model.entity.Routine;
+import com.alejandro.synclife.model.entity.Task;
 import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.function.IntSupplier;
@@ -137,12 +139,17 @@ public class RoutineService {
         createMissing(s, routine, today, to, existing);
     }
 
-    private static int createMissing(Session s, Routine routine, LocalDate from, LocalDate to,
-                                     Set<RoutineDay> existing) {
+    private int createMissing(Session s, Routine routine, LocalDate from, LocalDate to,
+                              Set<RoutineDay> existing) {
         int created = 0;
+        LocalDateTime now = LocalDateTime.now(clock).withNano(0);
         for (LocalDate day : RoutineScheduler.occurrences(routine, from, to)) {
             if (existing.add(new RoutineDay(routine.getId(), day))) {
-                s.persist(routine.newInstanceFor(day));
+                Task task = routine.newInstanceFor(day);
+                if (task.getRemindAt() != null && task.getRemindAt().isBefore(now)) {
+                    task.setRemindedAt(now); // la hora del aviso de hoy ya pasó: no se avisa tarde
+                }
+                s.persist(task);
                 created++;
             }
         }
@@ -177,6 +184,10 @@ public class RoutineService {
         Integer minutes = routine.getDurationMinutes();
         if (minutes != null && (minutes <= 0 || minutes > 24 * 60)) {
             throw new ValidationException("La duración debe estar entre 1 minuto y 24 horas.");
+        }
+        Integer remind = routine.getRemindMinutesBefore();
+        if (remind != null && (remind < 0 || remind > 24 * 60)) {
+            throw new ValidationException("El aviso debe ser como mucho 24 horas antes.");
         }
     }
 }

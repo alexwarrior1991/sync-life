@@ -68,6 +68,8 @@ public class TaskListCell extends ListCell<Task> {
     /** "2/5" de la lista de comprobación y "50 min / 1 h" de tiempo registrado. */
     private final Label checklist = new Label(null, new FontIcon("mdi2c-checkbox-marked-outline"));
     private final Label tracked = new Label(null, new FontIcon("mdi2c-clock-outline"));
+    /** Recordatorio pendiente ("9:45" o "Mar 13 9:45"). */
+    private final Label reminder = new Label(null, new FontIcon("mdi2b-bell-outline"));
     /** Objetivo al que contribuye la tarea. */
     private final Label goal = new Label(null, new FontIcon("mdi2b-bullseye-arrow"));
     private final Tooltip goalTip = new Tooltip();
@@ -108,7 +110,12 @@ public class TaskListCell extends ListCell<Task> {
         goal.setMaxWidth(170);
         goal.setTooltip(goalTip);
 
-        HBox details = compact ? new HBox(8, meta, checklist) : new HBox(8, meta, checklist, tracked, goal, due);
+        reminder.getStyleClass().addAll("task-indicator", "reminder-indicator");
+        reminder.setMinWidth(Region.USE_PREF_SIZE);
+        Tooltip.install(reminder, new Tooltip("Recordatorio"));
+
+        HBox details = compact ? new HBox(8, meta, checklist)
+                : new HBox(8, meta, reminder, checklist, tracked, goal, due);
         details.setAlignment(Pos.CENTER_LEFT);
         details.setMinWidth(0);
         meta.setMinWidth(0);
@@ -230,6 +237,16 @@ public class TaskListCell extends ListCell<Task> {
         tracked.getStyleClass().remove("over");
         if (hasTime && estimate != null && estimate > 0 && task.getTrackedMinutes() > estimate * 1.1) {
             tracked.getStyleClass().add("over");
+        }
+
+        boolean pendingReminder = task.getRemindAt() != null && task.getRemindedAt() == null && task.isOpen();
+        reminder.setVisible(pendingReminder);
+        reminder.setManaged(pendingReminder);
+        if (pendingReminder) {
+            reminder.setText(task.getRemindAt().toLocalDate().equals(task.getScheduledDate())
+                    ? Formats.time(task.getRemindAt().toLocalTime())
+                    : Formats.relativeDay(task.getRemindAt().toLocalDate(), today) + " "
+                    + Formats.time(task.getRemindAt().toLocalTime()));
         }
 
         boolean hasGoal = task.getGoal() != null && !compact && actions.showsGoal();

@@ -10,6 +10,7 @@ import com.alejandro.synclife.model.enums.Priority;
 import com.alejandro.synclife.model.enums.TaskStatus;
 import com.alejandro.synclife.ui.Choice;
 import com.alejandro.synclife.ui.Formats;
+import com.alejandro.synclife.ui.CsvTransfer;
 import com.alejandro.synclife.ui.FxAsync;
 import com.alejandro.synclife.ui.TaskActions;
 import com.alejandro.synclife.ui.Ui;
@@ -80,6 +81,7 @@ public class TasksController implements ViewController {
     private boolean resetting;
 
     @FXML private Label countLabel;
+    @FXML private Button exportButton;
     @FXML private Button deleteDoneButton;
     @FXML private Button deleteSelectedButton;
     @FXML private CustomTextField searchField;
@@ -449,6 +451,7 @@ public class TasksController implements ViewController {
         FxAsync.run(() -> context.tasks().search(filter), tasks -> {
             items.setAll(tasks);
             updateDeleteButtons();
+            exportButton.setDisable(tasks.isEmpty());
             long open = tasks.stream().filter(Task::isOpen).count();
             countLabel.setText(tasks.size() + (tasks.size() == 1 ? " tarea" : " tareas")
                     + " · " + open + (open == 1 ? " abierta" : " abiertas"));
@@ -521,6 +524,14 @@ public class TasksController implements ViewController {
         resetFilters();
         searchDelay.stop();
         reload();
+    }
+
+    /** Exporta lo que muestra la tabla: mismos filtros (se vuelve a consultar por si algo cambió). */
+    @FXML
+    private void exportCsv() {
+        TaskFilter filter = buildFilter();
+        CsvTransfer.exportTasks(table.getScene().getWindow(), context, "synclife-tareas-" + context.today() + ".csv",
+                () -> context.tasks().search(filter));
     }
 
     @FXML

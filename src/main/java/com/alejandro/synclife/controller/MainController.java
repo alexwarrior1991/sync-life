@@ -8,7 +8,9 @@ import com.alejandro.synclife.ui.View;
 import com.alejandro.synclife.ui.control.PomodoroCard;
 import com.alejandro.synclife.ui.control.TaskEditorDialog;
 import com.alejandro.synclife.ui.notify.NotificationCenter;
+import com.alejandro.synclife.ui.notify.ReminderPoller;
 import com.alejandro.synclife.ui.pomodoro.PomodoroTimer;
+import com.alejandro.synclife.ui.tray.TrayIntegration;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -38,6 +40,7 @@ public class MainController {
     private final Map<View, ToggleButton> navButtons = new EnumMap<>(View.class);
     private Navigator navigator;
     private PomodoroTimer pomodoro;
+    private ReminderPoller reminders;
 
     @FXML private Label todayLabel;
     @FXML private VBox primaryNav;
@@ -93,8 +96,17 @@ public class MainController {
         }
         if (scene.getWindow() instanceof Stage stage) {
             pomodoro.attach(stage);
+            TrayIntegration tray = new TrayIntegration(context, stage);
+            AppUi.installTray(tray);
+            tray.install();
         }
         navigator.navigate(initialView);
+        reminders = new ReminderPoller(context);
+        reminders.start();
+    }
+
+    public ReminderPoller reminders() {
+        return reminders;
     }
 
     public void newTask() {

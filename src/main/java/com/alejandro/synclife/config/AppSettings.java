@@ -34,10 +34,27 @@ public final class AppSettings {
         }
     }
 
+    /**
+     * Avisos: seguir en la bandeja al cerrar la ventana, notificaciones del sistema, sonido y recordatorio
+     * propuesto para las tareas nuevas ({@code defaultReminderMinutes} null = sin recordatorio).
+     */
+    public record NotificationSettings(boolean minimizeToTray, boolean systemNotifications, boolean sound,
+                                       Integer defaultReminderMinutes) {
+
+        public static final NotificationSettings DEFAULT = new NotificationSettings(true, true, true, null);
+
+        public NotificationSettings clamped() {
+            Integer minutes = defaultReminderMinutes == null || defaultReminderMinutes < 0 ? null
+                    : clamp(defaultReminderMinutes, 0, 24 * 60);
+            return new NotificationSettings(minimizeToTray, systemNotifications, sound, minutes);
+        }
+    }
+
     private final Path file;
     private ThemeMode theme = ThemeMode.CLARO;
     private int routineHorizonDays = DEFAULT_HORIZON;
     private PomodoroSettings pomodoro = PomodoroSettings.DEFAULT;
+    private NotificationSettings notifications = NotificationSettings.DEFAULT;
 
     private AppSettings(Path file) {
         this.file = file;
@@ -59,6 +76,13 @@ public final class AppSettings {
                         parseInt(props.getProperty("pomodoro.longBreak.every"), d.longBreakEvery()),
                         parseBoolean(props.getProperty("pomodoro.autoStartBreaks"), d.autoStartBreaks()),
                         parseBoolean(props.getProperty("pomodoro.sound"), d.sound())).clamped();
+                NotificationSettings n = NotificationSettings.DEFAULT;
+                String reminder = props.getProperty("reminder.default.minutes");
+                settings.notifications = new NotificationSettings(
+                        parseBoolean(props.getProperty("notifications.tray"), n.minimizeToTray()),
+                        parseBoolean(props.getProperty("notifications.system"), n.systemNotifications()),
+                        parseBoolean(props.getProperty("notifications.sound"), n.sound()),
+                        reminder == null || reminder.isBlank() ? null : parseInt(reminder, -1)).clamped();
             } catch (IOException | RuntimeException e) {
                 LOG.log(Level.WARNING, "No se pudieron leer los ajustes; se usan los valores por defecto", e);
             }
@@ -76,6 +100,11 @@ public final class AppSettings {
         props.setProperty("pomodoro.longBreak.every", Integer.toString(pomodoro.longBreakEvery()));
         props.setProperty("pomodoro.autoStartBreaks", Boolean.toString(pomodoro.autoStartBreaks()));
         props.setProperty("pomodoro.sound", Boolean.toString(pomodoro.sound()));
+        props.setProperty("notifications.tray", Boolean.toString(notifications.minimizeToTray()));
+        props.setProperty("notifications.system", Boolean.toString(notifications.systemNotifications()));
+        props.setProperty("notifications.sound", Boolean.toString(notifications.sound()));
+        props.setProperty("reminder.default.minutes", notifications.defaultReminderMinutes() == null ? ""
+                : Integer.toString(notifications.defaultReminderMinutes()));
         Files.createDirectories(file.getParent());
         try (OutputStream out = Files.newOutputStream(file)) {
             props.store(out, "Ajustes de SyncLife");
@@ -104,6 +133,14 @@ public final class AppSettings {
 
     public synchronized void setPomodoro(PomodoroSettings pomodoro) {
         this.pomodoro = pomodoro == null ? PomodoroSettings.DEFAULT : pomodoro.clamped();
+    }
+
+    public synchronized NotificationSettings getNotifications() {
+        return notifications;
+    }
+
+    public synchronized void setNotifications(NotificationSettings notifications) {
+        this.notifications = notifications == null ? NotificationSettings.DEFAULT : notifications.clamped();
     }
 
     private static ThemeMode parseTheme(String value) {

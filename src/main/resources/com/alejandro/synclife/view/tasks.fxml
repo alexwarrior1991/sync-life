@@ -7,6 +7,7 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
@@ -26,6 +27,10 @@
                     <Label fx:id="countLabel" styleClass="text-muted"/>
                 </VBox>
                 <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="exportButton" text="Exportar" onAction="#exportCsv" styleClass="flat" minWidth="-Infinity">
+                    <graphic><FontIcon iconLiteral="mdi2f-file-export-outline"/></graphic>
+                    <tooltip><Tooltip text="Exportar a CSV las tareas de la lista (con los filtros aplicados)"/></tooltip>
+                </Button>
                 <Button fx:id="deleteDoneButton" text="Borrar completadas" onAction="#deleteCompleted"
                         styleClass="flat" minWidth="-Infinity">
                     <graphic><FontIcon iconLiteral="mdi2b-broom"/></graphic>

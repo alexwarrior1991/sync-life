@@ -17,6 +17,7 @@ import com.alejandro.synclife.ui.Choice;
 import com.alejandro.synclife.ui.Dialogs;
 import com.alejandro.synclife.ui.Formats;
 import com.alejandro.synclife.ui.FxAsync;
+import com.alejandro.synclife.ui.ReminderOptions;
 import com.alejandro.synclife.ui.Theme;
 import com.alejandro.synclife.ui.Ui;
 import com.alejandro.synclife.ui.cell.CategoryChoiceCell;
@@ -77,6 +78,11 @@ public class TaskEditorController {
     @FXML private ComboBox<Choice<Goal>> goalCombo;
     @FXML private DatePicker scheduledPicker;
     @FXML private TimeField timeField;
+    @FXML private Label reminderLabel;
+    @FXML private HBox reminderRow;
+    @FXML private ComboBox<Choice<Integer>> reminderCombo;
+    @FXML private TimeField reminderTimeField;
+    @FXML private Label reminderHint;
     @FXML private Spinner<Integer> estimateSpinner;
     @FXML private DatePicker duePicker;
     @FXML private Label timeLabel;
@@ -117,14 +123,16 @@ public class TaskEditorController {
         quadrantCombo.getSelectionModel().selectFirst();
 
         areaCombo.valueProperty().addListener((obs, old, area) -> refreshCategories(area));
+        buildReminder();
         checklistTitle.textProperty().bind(Bindings.createStringBinding(() -> {
             String summary = checklistEditor.summaryProperty().get();
             return summary.isEmpty() ? "Lista de comprobación" : "Lista de comprobación (" + summary + ")";
         }, checklistEditor.summaryProperty()));
 
         invalid = Bindings.createBooleanBinding(
-                () -> titleField.getText() == null || titleField.getText().isBlank() || !timeField.isValid(),
-                titleField.textProperty(), timeField.validProperty());
+                () -> titleField.getText() == null || titleField.getText().isBlank() || !timeField.isValid()
+                        || !reminderTimeField.isValid(),
+                titleField.textProperty(), timeField.validProperty(), reminderTimeField.validProperty());
         showRow(timeLabel, timeRow, false);
     }
 
@@ -155,6 +163,8 @@ public class TaskEditorController {
             statusCombo.setValue(TaskStatus.PENDIENTE);
             scheduledPicker.setValue(defaultDate);
             checklistEditor.setItems(List.of());
+            Ui.selectChoice(reminderCombo, context.settings().getNotifications().defaultReminderMinutes());
+            updateReminderRow();
             return;
         }
         if (task.getCategory() != null && !categories.contains(task.getCategory())) {
@@ -173,6 +183,12 @@ public class TaskEditorController {
         Ui.selectChoice(quadrantCombo, task.getQuadrant());
         scheduledPicker.setValue(task.getScheduledDate());
         timeField.setTime(task.getStartTime());
+        Integer option = ReminderOptions.optionFor(task.getRemindAt(), task.reminderBase());
+        Ui.selectChoice(reminderCombo, option);
+        if (option != null && option == ReminderOptions.CUSTOM) {
+            reminderTimeField.setTime(task.getRemindAt().toLocalTime());
+        }
+        updateReminderRow();
         estimateSpinner.getValueFactory().setValue(
                 task.getEstimatedMinutes() == null ? 0 : task.getEstimatedMinutes());
         duePicker.setValue(task.getDueDate());
@@ -211,6 +227,8 @@ public class TaskEditorController {
             target.setGoal(Ui.choiceValue(goalCombo));
         }
         target.setStartTime(timeField.getTime());
+        target.setRemindAt(ReminderOptions.remindAt(Ui.choiceValue(reminderCombo), target.getScheduledDate(),
+                target.getStartTime(), reminderTimeField.getTime(), Task.DEFAULT_REMINDER_TIME));
         Integer minutes = spinnerValue();
         target.setEstimatedMinutes(minutes == null || minutes == 0 ? null : minutes);
         target.setDueDate(Ui.datePickerValue(duePicker));
@@ -238,6 +256,34 @@ public class TaskEditorController {
     public void focusTitle() {
         titleField.requestFocus();
         titleField.end();
+    }
+
+    // ---------------------------------------------------------------- recordatorio
+
+    private void buildReminder() {
+        reminderCombo.getItems().setAll(ReminderOptions.forTasks());
+        reminderCombo.getSelectionModel().selectFirst();
+        reminderTimeField.setPromptText("hh:mm");
+        reminderCombo.valueProperty().addListener((obs, old, value) -> updateReminderRow());
+        timeField.textProperty().addListener((obs, old, value) -> updateReminderRow());
+        scheduledPicker.valueProperty().addListener((obs, old, value) -> updateReminderRow());
+        updateReminderRow();
+    }
+
+    /** El recordatorio necesita un día; la hora concreta solo se pide con "A una hora concreta…". */
+    private void updateReminderRow() {
+        boolean hasDay = scheduledPicker.getValue() != null;
+        showRow(reminderLabel, reminderRow, hasDay);
+        Integer option = Ui.choiceValue(reminderCombo);
+        boolean custom = option != null && option == ReminderOptions.CUSTOM;
+        reminderTimeField.setVisible(custom);
+        reminderTimeField.setManaged(custom);
+        if (!custom) {
+            reminderTimeField.clear();
+        }
+        boolean relativeWithoutTime = option != null && !custom && timeField.getTime() == null;
+        reminderHint.setText(relativeWithoutTime ? "(sin hora: respecto a las "
+                + Formats.time(Task.DEFAULT_REMINDER_TIME) + ")" : "");
     }
 
     // ---------------------------------------------------------------- tiempo real

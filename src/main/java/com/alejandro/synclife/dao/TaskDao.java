@@ -107,6 +107,16 @@ public class TaskDao extends AbstractDao<Task> {
                 .getResultList();
     }
 
+    /** Tareas abiertas con un recordatorio vencido que aún no se ha mostrado, del más antiguo al más reciente. */
+    public List<Task> findDueReminders(Session session, LocalDateTime now) {
+        return session.createSelectionQuery(
+                        BASE + "where t.remindAt <= :now and t.remindedAt is null and t.status in :open "
+                                + "order by t.remindAt, t.id", Task.class)
+                .setParameter("now", now)
+                .setParameter("open", TaskStatus.OPEN)
+                .getResultList();
+    }
+
     /** Tareas vinculadas a un objetivo: primero las abiertas (por fecha), luego el resto. */
     public List<Task> findByGoal(Session session, long goalId) {
         return session.createSelectionQuery(

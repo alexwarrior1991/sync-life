@@ -1,0 +1,285 @@
+name: Publicar versión
+
+# Al subir una etiqueta vX.Y.Z (git tag v1.2.0 && git push --tags) crea la versión en GitHub Releases con:
+#   - SyncLife-X.Y.Z.msi                    instalador de Windows (con Java incluido)
+#   - SyncLife-X.Y.Z-windows-portable.zip   la misma aplicación sin instalar: descomprimir y abrir SyncLife.exe
+#   - synclife_X.Y.Z_amd64.deb              paquete para Ubuntu/Debian (con Java incluido)
+#   - SyncLife-X.Y.Z.jar                    el JAR de siempre (necesita Java 21+ instalado)
+# En las PR que tocan el empaquetado se generan los mismos ficheros como artefactos, sin publicar nada.
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - src/packaging/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Módulos de Java que necesita SyncLife (Hibernate, SQLite, JavaFX en el classpath, bandeja y sonido).
+  # jdk.localedata es imprescindible: sin él, las fechas salen en inglés. La prueba de humo lo comprueba.
+  JLINK_MODULES: java.base,java.compiler,java.desktop,java.instrument,java.naming,java.rmi,java.scripting,java.sql,jdk.jfr,jdk.unsupported,jdk.localedata
+  JLINK_OPTIONS: --strip-native-commands --strip-debug --no-man-pages --no-header-files --include-locales=es,en
+  # Identifica el producto en Windows para que cada .msi nuevo actualice al anterior. No cambiarlo nunca.
+  WIN_UPGRADE_UUID: 71554c9d-32d9-4a3e-b5c1-260bbb6878d1
+
+jobs:
+  build:
+    name: JAR · tests y prueba de humo
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Versión
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "::error::La etiqueta debe tener la forma vX.Y.Z (por ejemplo v1.2.0), no $GITHUB_REF_NAME"
+              exit 1
+            fi
+            revision="$version"
+          else
+            revision=$(sed -n 's:.*<revision>\(.*\)</revision>.*:\1:p' pom.xml | head -n 1)
+            version="${revision%-SNAPSHOT}"
+          fi
+          echo "Versión $version (Maven: $revision)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Compilar y pasar los tests
+        run: ./mvnw -B -ntp verify -Drevision="${{ steps.version.outputs.revision }}"
+
+      - name: Dependencias de la interfaz (X virtual y GTK)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q xvfb libgtk-3-0t64 libxtst6
+
+      - name: Prueba de humo del JAR
+        run: |
+          xvfb-run -a -s "-screen 0 1400x900x24" \
+            java -Dsynclife.home="$RUNNER_TEMP/synclife-home" \
+                 -Dsynclife.smoke=true \
+                 -jar target/SyncLife-all.jar | tee smoke.log
+          grep -q "SMOKE OK" smoke.log
+
+      - name: Preparar el JAR
+        run: |
+          mkdir -p dist
+          cp target/SyncLife-all.jar "dist/SyncLife-${{ steps.version.outputs.version }}.jar"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: jar
+          path: dist/
+          if-no-files-found: error
+
+  windows:
+    name: Windows · .msi y ZIP portable
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 30
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          java-package: jdk+jmods
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: jar
+          path: input
+
+      # Sin --main-class: el lanzador usa "-jar" y respeta el manifiesto del JAR (Launcher).
+      # --description es el nombre que Windows muestra en las notificaciones de la bandeja.
+      - name: Imagen de la aplicación
+        shell: bash
+        run: |
+          jpackage --type app-image --name SyncLife \
+            --input input --main-jar "SyncLife-$VERSION.jar" \
+            --app-version "$VERSION" --vendor SyncLife --description SyncLife \
+            --icon src/packaging/windows/SyncLife.ico \
+            --add-modules "$JLINK_MODULES" --jlink-options "$JLINK_OPTIONS" \
+            --dest build
+
+      # SyncLife.exe no escribe en la consola: se comprueba el código de salida y las capturas
+      - name: Prueba de humo del ejecutable
+        shell: pwsh
+        run: |
+          $dataDir = Join-Path $env:RUNNER_TEMP 'synclife-home'
+          $shots = Join-Path $env:RUNNER_TEMP 'capturas-windows'
+          $env:JAVA_TOOL_OPTIONS = "-Dsynclife.home=$dataDir -Dsynclife.smoke=true -Dsynclife.smoke.shots=$shots"
+          $process = Start-Process -FilePath 'build\SyncLife\SyncLife.exe' -PassThru
+          $null = $process.Handle  # sin esto, ExitCode llega vacío
+          if (-not $process.WaitForExit(300000)) {
+            $process.Kill()
+            throw 'La prueba de humo no terminó en 5 minutos'
+          }
+          $count = @(Get-ChildItem $shots -Filter *.png -ErrorAction SilentlyContinue).Count
+          Get-Content (Join-Path $dataDir 'logs\synclife0.log') -Tail 30 -ErrorAction SilentlyContinue
+          Write-Host "Código de salida: $($process.ExitCode) · capturas: $count"
+          if ($process.ExitCode -ne 0 -or $count -lt 20) {
+            throw 'La prueba de humo del ejecutable de Windows ha fallado'
+          }
+
+      - name: ZIP portable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path build\SyncLife -DestinationPath "dist\SyncLife-$env:VERSION-windows-portable.zip"
+
+      - name: Instalador .msi
+        shell: bash
+        run: |
+          jpackage --type msi --app-image build/SyncLife --name SyncLife \
+            --app-version "$VERSION" --vendor SyncLife \
+            --description "SyncLife: tareas y rutinas de trabajo, deporte y vida" \
+            --about-url "https://github.com/${{ github.repository }}" \
+            --win-per-user-install --win-dir-chooser \
+            --win-menu --win-menu-group SyncLife --win-shortcut \
+            --win-upgrade-uuid "$WIN_UPGRADE_UUID" \
+            --dest dist
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows
+          path: dist/
+          if-no-files-found: error
+
+      - name: Capturas de la prueba de humo
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: capturas-windows
+          path: ${{ runner.temp }}/capturas-windows
+          if-no-files-found: ignore
+
+  linux:
+    name: Linux · .deb
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          java-package: jdk+jmods
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: jar
+          path: input
+
+      - name: Imagen de la aplicación
+        run: |
+          jpackage --type app-image --name SyncLife \
+            --input input --main-jar "SyncLife-$VERSION.jar" \
+            --app-version "$VERSION" --vendor SyncLife --description SyncLife \
+            --icon src/main/resources/com/alejandro/synclife/images/icon-256.png \
+            --add-modules "$JLINK_MODULES" --jlink-options "$JLINK_OPTIONS" \
+            --dest build
+
+      - name: Dependencias de la interfaz (X virtual y GTK)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q xvfb libgtk-3-0t64 libxtst6
+
+      # Con el Java recortado por jlink: si falta un módulo, aquí se nota
+      - name: Prueba de humo del runtime empaquetado
+        run: |
+          export JAVA_TOOL_OPTIONS="-Dsynclife.home=$RUNNER_TEMP/synclife-home -Dsynclife.smoke=true -Dsynclife.smoke.shots=$RUNNER_TEMP/capturas-linux"
+          xvfb-run -a -s "-screen 0 1400x900x24" build/SyncLife/bin/SyncLife | tee smoke.log
+          grep -q "SMOKE OK" smoke.log
+
+      - name: Paquete .deb
+        run: |
+          jpackage --type deb --app-image build/SyncLife --name SyncLife \
+            --app-version "$VERSION" --vendor SyncLife \
+            --description "Gestor de tareas y rutinas: trabajo, deporte y vida" \
+            --about-url "https://github.com/${{ github.repository }}" \
+            --linux-package-name synclife \
+            --linux-deb-maintainer "${{ github.repository_owner }}@users.noreply.github.com" \
+            --linux-shortcut --linux-menu-group Office --linux-app-category utils \
+            --dest dist
+          dpkg-deb --info dist/*.deb
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux
+          path: dist/
+          if-no-files-found: error
+
+      - name: Capturas de la prueba de humo
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: capturas-linux
+          path: ${{ runner.temp }}/capturas-linux
+          if-no-files-found: ignore
+
+  release:
+    name: Publicar en GitHub Releases
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, windows, linux]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: jar
+          path: dist
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows
+          path: dist
+      - uses: actions/download-artifact@v8
+        with:
+          name: linux
+          path: dist
+
+      - name: Crear la versión
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          ls -la dist
+          notes="**Windows:** descarga \`SyncLife-$VERSION.msi\` e instálalo (no hace falta tener Java). Como el instalador no está firmado, Windows puede avisar: «Más información» → «Ejecutar de todas formas». Sin instalar: \`SyncLife-$VERSION-windows-portable.zip\`, descomprimir y abrir \`SyncLife.exe\`.
+
+          **Ubuntu/Debian:** \`sudo apt install ./synclife_${VERSION}_amd64.deb\`.
+
+          **JAR:** \`SyncLife-$VERSION.jar\` funciona en cualquier sistema con Java 21 o superior."
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" \
+              --title "SyncLife $VERSION" --notes "$notes" --generate-notes
+          fi

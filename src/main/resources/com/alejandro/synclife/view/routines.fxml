@@ -96,8 +96,15 @@
                             <DatePicker fx:id="endPicker" prefWidth="140" promptText="Sin fin"/>
                         </HBox>
 
-                        <Label text="Activa" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
-                        <ToggleSwitch fx:id="activeSwitch" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+                        <Label text="Aviso" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
+                        <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="7" GridPane.columnIndex="1">
+                            <ComboBox fx:id="remindCombo" prefWidth="200"/>
+                            <Label text="de la hora de cada día (o de las 9:00 si no tiene)" styleClass="text-muted, text-small"
+                                   wrapText="true" minWidth="0"/>
+                        </HBox>
+
+                        <Label text="Activa" GridPane.rowIndex="8" GridPane.columnIndex="0"/>
+                        <ToggleSwitch fx:id="activeSwitch" GridPane.rowIndex="8" GridPane.columnIndex="1"/>
                     </GridPane>
 
                     <Label fx:id="previewLabel" styleClass="preview" wrapText="true" maxWidth="Infinity">

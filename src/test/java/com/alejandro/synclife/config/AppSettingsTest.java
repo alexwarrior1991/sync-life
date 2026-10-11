@@ -1,5 +1,6 @@
 package com.alejandro.synclife.config;
 
+import com.alejandro.synclife.config.AppSettings.NotificationSettings;
 import com.alejandro.synclife.config.AppSettings.PomodoroSettings;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -27,6 +28,19 @@ class AppSettingsTest {
 
         assertThat(AppSettings.load(dir).getPomodoro())
                 .isEqualTo(new PomodoroSettings(50, 10, 20, 3, false, false));
+    }
+
+    @Test
+    void notificationSettingsAreSavedAndReloaded() throws Exception {
+        assertThat(AppSettings.load(dir).getNotifications()).isEqualTo(NotificationSettings.DEFAULT);
+        AppSettings settings = AppSettings.load(dir);
+        settings.setNotifications(new NotificationSettings(false, true, false, 15));
+        settings.save();
+        assertThat(AppSettings.load(dir).getNotifications()).isEqualTo(new NotificationSettings(false, true, false, 15));
+
+        settings.setNotifications(new NotificationSettings(true, false, true, null));
+        settings.save();
+        assertThat(AppSettings.load(dir).getNotifications().defaultReminderMinutes()).isNull();
     }
 
     @Test

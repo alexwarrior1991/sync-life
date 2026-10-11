@@ -59,8 +59,9 @@ public class NotificationCenter {
             case SUCCESS -> Styles.SUCCESS;
             case WARNING -> Styles.WARNING;
         });
-        notification.setPrefWidth(360);
-        notification.setMaxWidth(360);
+        double width = actions.length > 0 ? 420 : 360; // con botones, que quepan sin cortarse
+        notification.setPrefWidth(width);
+        notification.setMaxWidth(width);
         notification.setMaxHeight(Region.USE_PREF_SIZE);
         if (actions.length > 0) {
             notification.setPrimaryActions(actions);
