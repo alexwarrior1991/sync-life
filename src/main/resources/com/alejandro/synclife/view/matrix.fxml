@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<BorderPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.alejandro.synclife.controller.MatrixController"
+            styleClass="page">
+    <top>
+        <VBox spacing="12">
+            <BorderPane.margin><Insets bottom="12"/></BorderPane.margin>
+            <HBox styleClass="page-header" spacing="8">
+                <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
+                    <Label text="Matriz de Eisenhower" styleClass="title-2"/>
+                    <Label fx:id="subtitle" styleClass="text-muted" wrapText="true"/>
+                </VBox>
+                <HBox fx:id="areaFilterBox" minWidth="-Infinity"/>
+                <Button text="Nueva tarea" onAction="#newTask" styleClass="accent" minWidth="-Infinity">
+                    <graphic><FontIcon iconLiteral="mdi2p-plus"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+    </top>
+    <center>
+        <HBox spacing="10">
+            <!-- Columnas: urgente | no urgente · Filas: importante | no importante -->
+            <GridPane fx:id="grid" hgap="10" vgap="10" HBox.hgrow="ALWAYS" styleClass="matrix-grid"/>
+            <VBox fx:id="unclassifiedBox" prefWidth="230" minWidth="190" spacing="6" styleClass="panel, matrix-lane">
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <Label text="Sin clasificar" styleClass="title-4"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="unclassifiedCount" styleClass="badge, badge-muted"/>
+                </HBox>
+                <Label text="Arrastra cada tarea a su cuadrante. Las de rutinas no aparecen aquí."
+                       styleClass="text-muted, text-small" wrapText="true"/>
+                <ListView fx:id="unclassifiedList" VBox.vgrow="ALWAYS"/>
+            </VBox>
+        </HBox>
+    </center>
+</BorderPane>

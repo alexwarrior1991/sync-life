@@ -49,6 +49,11 @@
                     </VBox>
                 </HBox>
                 <VBox styleClass="panel" spacing="8">
+                    <Label text="Estimado frente a real" styleClass="title-4"/>
+                    <Label fx:id="accuracyHint" styleClass="text-muted, text-small" wrapText="true"/>
+                    <TableView fx:id="accuracyTable" prefHeight="220"/>
+                </VBox>
+                <VBox styleClass="panel" spacing="8">
                     <Label text="Cumplimiento de rutinas" styleClass="title-4"/>
                     <Label text="Días ya vividos del periodo: hechas frente a programadas (omitir cuenta como no hecha)."
                            styleClass="text-muted, text-small"/>

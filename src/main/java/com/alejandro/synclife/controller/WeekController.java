@@ -6,6 +6,7 @@ import com.alejandro.synclife.model.enums.Area;
 import com.alejandro.synclife.ui.Formats;
 import com.alejandro.synclife.ui.FxAsync;
 import com.alejandro.synclife.ui.TaskActions;
+import com.alejandro.synclife.ui.TaskDragAndDrop;
 import com.alejandro.synclife.ui.Ui;
 import com.alejandro.synclife.ui.ViewController;
 import com.alejandro.synclife.ui.cell.TaskListCell;
@@ -17,8 +18,6 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
-import javafx.scene.input.DragEvent;
-import javafx.scene.input.TransferMode;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -162,31 +161,7 @@ public class WeekController implements ViewController {
 
     /** Acepta tareas arrastradas desde otra lista y las reprograma al día que indique {@code target}. */
     private void installDropTarget(ListView<Task> list, Supplier<LocalDate> target) {
-        list.setOnDragOver(e -> {
-            if (e.getDragboard().hasContent(TaskListCell.TASK_ID) && !isFromList(e, list)) {
-                e.acceptTransferModes(TransferMode.MOVE);
-            }
-            e.consume();
-        });
-        list.setOnDragEntered(e -> {
-            if (e.getDragboard().hasContent(TaskListCell.TASK_ID) && !isFromList(e, list)) {
-                list.getStyleClass().add("drag-over");
-            }
-        });
-        list.setOnDragExited(e -> list.getStyleClass().removeAll("drag-over"));
-        list.setOnDragDropped(e -> {
-            Object id = e.getDragboard().getContent(TaskListCell.TASK_ID);
-            boolean ok = id instanceof Long;
-            if (ok) {
-                actions.moveTo((Long) id, target.get());
-            }
-            e.setDropCompleted(ok);
-            e.consume();
-        });
-    }
-
-    private static boolean isFromList(DragEvent e, ListView<Task> list) {
-        return e.getGestureSource() instanceof TaskListCell cell && cell.getListView() == list;
+        TaskDragAndDrop.installDropTarget(list, id -> actions.moveTo(id, target.get()));
     }
 
     @Override

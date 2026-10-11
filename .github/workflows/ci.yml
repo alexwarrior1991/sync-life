@@ -1,0 +1,71 @@
+name: CI
+
+# Compila y pasa los tests en Linux (Java 21, la versión mínima) y en Windows (Java 25, la del usuario).
+# En Linux, además, la prueba de humo recorre la interfaz real con un servidor X virtual y guarda capturas.
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: Linux · Java 21 · tests y prueba de humo
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Compilar y pasar los tests
+        run: ./mvnw -B -ntp verify
+
+      - name: Dependencias de la interfaz (X virtual y GTK)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q xvfb libgtk-3-0t64 libxtst6
+
+      - name: Prueba de humo de la interfaz
+        run: |
+          xvfb-run -a -s "-screen 0 1400x900x24" \
+            java -Dsynclife.home="$RUNNER_TEMP/synclife-home" \
+                 -Dsynclife.smoke=true \
+                 -Dsynclife.smoke.shots="$RUNNER_TEMP/capturas" \
+                 -jar target/SyncLife-all.jar | tee smoke.log
+          grep -q "SMOKE OK" smoke.log
+
+      - name: Capturas de pantalla
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: capturas
+          path: ${{ runner.temp }}/capturas
+          if-no-files-found: ignore
+
+  windows:
+    name: Windows · Java 25 · tests
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Compilar y pasar los tests
+        run: ./mvnw.cmd -B -ntp verify

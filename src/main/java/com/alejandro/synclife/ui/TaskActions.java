@@ -2,6 +2,7 @@ package com.alejandro.synclife.ui;
 
 import com.alejandro.synclife.AppContext;
 import com.alejandro.synclife.model.entity.Task;
+import com.alejandro.synclife.model.enums.Quadrant;
 import com.alejandro.synclife.ui.control.TaskEditorDialog;
 import javafx.scene.Node;
 import javafx.scene.control.ListView;
@@ -34,6 +35,11 @@ public class TaskActions {
     }
 
     public void toggleDone(Task task) {
+        if (task.isOpen() && isPomodoroTask(task)) {
+            // Completar la tarea del Pomodoro lo termina y registra el tiempo que lleva
+            AppUi.pomodoro().stop();
+            AppUi.notifications().success("Pomodoro terminado: «" + task.getTitle() + "» está hecha.");
+        }
         execute(() -> context.tasks().toggleDone(task.getId()));
     }
 
@@ -56,6 +62,25 @@ public class TaskActions {
 
     public void skip(Task task) {
         execute(() -> context.tasks().skip(task.getId()));
+    }
+
+    /** Empieza un Pomodoro con la tarea (la tarjeta de la barra lateral muestra la cuenta atrás). */
+    public void startPomodoro(Task task) {
+        AppUi.pomodoro().start(task);
+    }
+
+    /** ¿Hay un Pomodoro en marcha con esta tarea? (para destacarla en las listas) */
+    public boolean isPomodoroTask(Task task) {
+        return AppUi.isInstalled() && AppUi.pomodoro().isWorkingOn(task);
+    }
+
+    /** Clasifica la tarea en la matriz de Eisenhower ({@code null} = sin clasificar). */
+    public void setQuadrant(Task task, Quadrant quadrant) {
+        setQuadrant(task.getId(), quadrant);
+    }
+
+    public void setQuadrant(long taskId, Quadrant quadrant) {
+        execute(() -> context.tasks().setQuadrant(taskId, quadrant));
     }
 
     public void delete(Task task) {

@@ -9,6 +9,7 @@ import com.alejandro.synclife.model.entity.Routine;
 import com.alejandro.synclife.model.entity.Task;
 import com.alejandro.synclife.model.enums.Area;
 import com.alejandro.synclife.model.enums.Priority;
+import com.alejandro.synclife.model.enums.Quadrant;
 import com.alejandro.synclife.model.enums.TaskStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -241,5 +242,66 @@ class TaskServiceTest {
         Task t = task("Temporal", Area.VIDA, TODAY, null, Priority.BAJA);
         tasks.delete(t.getId());
         assertThat(tasks.findById(t.getId())).isEmpty();
+    }
+
+    @Test
+    void matrixGroupsOpenOrdinaryTasksByQuadrant() {
+        Task fire = task("Incendio", Area.TRABAJO, TODAY, null, Priority.MEDIA);
+        tasks.setQuadrant(fire.getId(), Quadrant.HACER_YA);
+        Task plan = task("Plan anual", Area.TRABAJO, null, null, Priority.MEDIA);
+        tasks.setQuadrant(plan.getId(), Quadrant.PLANIFICAR);
+        task("Sin clasificar", Area.TRABAJO, null, null, Priority.MEDIA);
+        Task gym = task("Gimnasio", Area.DEPORTE, TODAY, null, Priority.MEDIA);
+        tasks.setQuadrant(gym.getId(), Quadrant.PLANIFICAR);
+        Task closed = task("Ya hecha", Area.TRABAJO, TODAY, null, Priority.MEDIA);
+        tasks.setQuadrant(closed.getId(), Quadrant.HACER_YA);
+        tasks.toggleDone(closed.getId());
+        ctx.routines().save(new Routine("Daily", Area.TRABAJO, DaysOfWeek.ALL, TODAY));
+
+        TaskService.MatrixData work = tasks.matrix(Area.TRABAJO);
+        assertThat(work.of(Quadrant.HACER_YA)).extracting(Task::getTitle).containsExactly("Incendio");
+        assertThat(work.of(Quadrant.PLANIFICAR)).extracting(Task::getTitle).containsExactly("Plan anual");
+        assertThat(work.of(Quadrant.DELEGAR)).isEmpty();
+        assertThat(work.unclassified()).extracting(Task::getTitle).containsExactly("Sin clasificar");
+
+        TaskService.MatrixData all = tasks.matrix(null);
+        assertThat(all.of(Quadrant.PLANIFICAR)).extracting(Task::getTitle)
+                .containsExactlyInAnyOrder("Plan anual", "Gimnasio");
+    }
+
+    @Test
+    void quadrantSurvivesEditingAndCanBeCleared() {
+        Task t = task("Informe", Area.TRABAJO, TODAY, null, Priority.MEDIA);
+        Task classified = tasks.setQuadrant(t.getId(), Quadrant.DELEGAR);
+        assertThat(classified.getQuadrant()).isEqualTo(Quadrant.DELEGAR);
+
+        classified.setTitle("Informe final");
+        tasks.save(classified);
+        assertThat(tasks.findById(t.getId()).orElseThrow().getQuadrant()).isEqualTo(Quadrant.DELEGAR);
+
+        assertThat(tasks.setQuadrant(t.getId(), null).getQuadrant()).isNull();
+        assertThat(TestSupport.single(ctx, "select coalesce(urgent, 'NULL') from task where id = " + t.getId()))
+                .isEqualTo("NULL");
+    }
+
+    @Test
+    void routineInstancesAreNotClassified() {
+        ctx.routines().save(new Routine("Daily", Area.TRABAJO, DaysOfWeek.ALL, TODAY));
+        Task instance = tasks.tasksForDay(TODAY).get(0);
+        assertThatThrownBy(() -> tasks.setQuadrant(instance.getId(), Quadrant.HACER_YA))
+                .isInstanceOf(ValidationException.class);
+        instance.setQuadrant(Quadrant.HACER_YA);
+        assertThatThrownBy(() -> tasks.save(instance)).isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void completedBetweenUsesTheCompletionDay() {
+        Task old = task("Programada hace tiempo", Area.TRABAJO, TODAY.minusDays(20), null, Priority.MEDIA);
+        tasks.toggleDone(old.getId());
+        task("Abierta", Area.TRABAJO, TODAY, null, Priority.MEDIA);
+
+        assertThat(tasks.completedBetween(TODAY, TODAY)).extracting(Task::getTitle)
+                .containsExactly("Programada hace tiempo");
+        assertThat(tasks.completedBetween(TODAY.minusDays(20), TODAY.minusDays(1))).isEmpty();
     }
 }

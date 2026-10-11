@@ -2,6 +2,7 @@ package com.alejandro.synclife.model.entity;
 
 import com.alejandro.synclife.model.enums.Area;
 import com.alejandro.synclife.model.enums.Priority;
+import com.alejandro.synclife.model.enums.Quadrant;
 import com.alejandro.synclife.model.enums.TaskStatus;
 import com.alejandro.synclife.persistence.converter.PriorityConverter;
 import jakarta.persistence.Column;
@@ -13,6 +14,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.Formula;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -65,6 +67,23 @@ public class Task extends BaseEntity {
 
     private LocalDateTime completedAt;
 
+    /** Marcas de la matriz de Eisenhower; null = sin clasificar. */
+    private Boolean urgent;
+
+    private Boolean important;
+
+    // Agregados de solo lectura (subconsultas): la UI los muestra sin cargar las subtareas ni los tiempos.
+    // Se actualizan al volver a leer la tarea de la base de datos.
+
+    @Formula("(select count(*) from subtask s where s.task_id = id)")
+    private int subtaskTotal;
+
+    @Formula("(select count(*) from subtask s where s.task_id = id and s.done = 1)")
+    private int subtaskDone;
+
+    @Formula("(select coalesce(sum(e.minutes), 0) from time_entry e where e.task_id = id)")
+    private int trackedMinutes;
+
     public Task() {
     }
 
@@ -110,6 +129,17 @@ public class Task extends BaseEntity {
             status = newStatus;
             completedAt = null;
         }
+    }
+
+    /** Cuadrante de Eisenhower, o null si falta alguna de las dos marcas. */
+    public Quadrant getQuadrant() {
+        return Quadrant.of(urgent, important);
+    }
+
+    /** Fija las dos marcas a la vez; null las deja sin clasificar. */
+    public void setQuadrant(Quadrant quadrant) {
+        urgent = quadrant == null ? null : quadrant.isUrgent();
+        important = quadrant == null ? null : quadrant.isImportant();
     }
 
     public String getTitle() {
@@ -206,6 +236,35 @@ public class Task extends BaseEntity {
 
     public void setCompletedAt(LocalDateTime completedAt) {
         this.completedAt = completedAt;
+    }
+
+    public Boolean getUrgent() {
+        return urgent;
+    }
+
+    public void setUrgent(Boolean urgent) {
+        this.urgent = urgent;
+    }
+
+    public Boolean getImportant() {
+        return important;
+    }
+
+    public void setImportant(Boolean important) {
+        this.important = important;
+    }
+
+    public int getSubtaskTotal() {
+        return subtaskTotal;
+    }
+
+    public int getSubtaskDone() {
+        return subtaskDone;
+    }
+
+    /** Minutos reales registrados (Pomodoro y apuntes manuales). */
+    public int getTrackedMinutes() {
+        return trackedMinutes;
     }
 
     @Override

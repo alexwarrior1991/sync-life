@@ -2,6 +2,7 @@ package com.alejandro.synclife;
 
 import com.alejandro.synclife.config.AppPaths;
 import com.alejandro.synclife.controller.MainController;
+import com.alejandro.synclife.ui.AppUi;
 import com.alejandro.synclife.ui.Dialogs;
 import com.alejandro.synclife.ui.Fonts;
 import com.alejandro.synclife.ui.FxAsync;
@@ -84,6 +85,9 @@ public class SyncLifeApp extends Application {
 
     @Override
     public void stop() {
+        if (AppUi.isInstalled()) {
+            AppUi.pomodoro().shutdown(); // encola el registro del enfoque a medias antes de parar el hilo de BD
+        }
         FxAsync.shutdown();
         if (context != null) {
             context.close();

@@ -2,6 +2,7 @@ package com.alejandro.synclife.ui.cell;
 
 import com.alejandro.synclife.model.entity.Task;
 import com.alejandro.synclife.model.enums.Priority;
+import com.alejandro.synclife.model.enums.Quadrant;
 import com.alejandro.synclife.model.enums.TaskStatus;
 import com.alejandro.synclife.ui.Formats;
 import com.alejandro.synclife.ui.TaskActions;
@@ -15,8 +16,11 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
@@ -61,6 +65,10 @@ public class TaskListCell extends ListCell<Task> {
     private final Text compactTitle = new Text();
     private final Label meta = new Label();
     private final Label due = new Label();
+    /** "2/5" de la lista de comprobación y "50 min / 1 h" de tiempo registrado. */
+    private final Label checklist = new Label(null, new FontIcon("mdi2c-checkbox-marked-outline"));
+    private final Label tracked = new Label(null, new FontIcon("mdi2c-clock-outline"));
+    private final FontIcon pomodoroIcon = new FontIcon("mdi2t-timer-outline");
     private final FontIcon routineIcon = new FontIcon("mdi2r-repeat");
     private final Label priority = new Label();
     /** Papelera (o "omitir" si es de rutina), siempre a mano al final de la fila. */
@@ -83,8 +91,16 @@ public class TaskListCell extends ListCell<Task> {
         due.getStyleClass().add("task-due");
         routineIcon.getStyleClass().add("routine-icon");
         Tooltip.install(routineIcon, new Tooltip("Generada por una rutina"));
+        pomodoroIcon.getStyleClass().add("pomodoro-active-icon");
+        Tooltip.install(pomodoroIcon, new Tooltip("Pomodoro en marcha"));
+        checklist.getStyleClass().add("task-indicator");
+        tracked.getStyleClass().add("task-indicator");
+        checklist.setMinWidth(Region.USE_PREF_SIZE);
+        tracked.setMinWidth(Region.USE_PREF_SIZE);
+        Tooltip.install(checklist, new Tooltip("Pasos hechos de la lista de comprobación"));
+        Tooltip.install(tracked, new Tooltip("Tiempo real registrado / estimado"));
 
-        HBox details = new HBox(8, meta, due);
+        HBox details = compact ? new HBox(8, meta, checklist) : new HBox(8, meta, checklist, tracked, due);
         details.setAlignment(Pos.CENTER_LEFT);
         details.setMinWidth(0);
         meta.setMinWidth(0);
@@ -96,7 +112,7 @@ public class TaskListCell extends ListCell<Task> {
         if (compact) {
             // En la semana las columnas son estrechas: sin casilla (se completa desde el menú contextual),
             // barra de color a la izquierda y título en varias líneas
-            root = new HBox(4, text, routineIcon);
+            root = new HBox(4, text, pomodoroIcon, routineIcon);
             root.getStyleClass().add("compact-root");
         } else {
             rowAction.getStyleClass().addAll("button-icon", "flat", "small", "row-action");
@@ -108,7 +124,7 @@ public class TaskListCell extends ListCell<Task> {
                     actions.deleteOrSkip(task);
                 }
             });
-            root = new HBox(8, check, dot, text, routineIcon, priority, rowAction);
+            root = new HBox(8, check, dot, text, pomodoroIcon, routineIcon, priority, rowAction);
         }
         root.setAlignment(Pos.CENTER_LEFT);
         root.setMinWidth(0);
@@ -156,7 +172,8 @@ public class TaskListCell extends ListCell<Task> {
             compactTitle.wrappingWidthProperty().bind(Bindings.createDoubleBinding(() -> {
                 Task current = getItem();
                 double chrome = COMPACT_CHROME_WIDTH
-                        + (current != null && current.isRoutineInstance() ? ROUTINE_ICON_WIDTH : 0);
+                        + (current != null && current.isRoutineInstance() ? ROUTINE_ICON_WIDTH : 0)
+                        + (current != null && actions.isPomodoroTask(current) ? ROUTINE_ICON_WIDTH : 0);
                 return Math.max(40, list.getWidth() - chrome);
             }, list.widthProperty(), itemProperty()));
         }
@@ -185,6 +202,31 @@ public class TaskListCell extends ListCell<Task> {
         meta.setText(String.join(" · ", parts));
         meta.setVisible(!parts.isEmpty());
         meta.setManaged(!parts.isEmpty());
+
+        boolean hasChecklist = task.getSubtaskTotal() > 0;
+        checklist.setText(task.getSubtaskDone() + "/" + task.getSubtaskTotal());
+        checklist.setVisible(hasChecklist);
+        checklist.setManaged(hasChecklist);
+        checklist.getStyleClass().remove("complete");
+        if (hasChecklist && task.getSubtaskDone() == task.getSubtaskTotal()) {
+            checklist.getStyleClass().add("complete");
+        }
+
+        boolean hasTime = task.getTrackedMinutes() > 0;
+        Integer estimate = task.getEstimatedMinutes();
+        tracked.setText(estimate == null || estimate == 0
+                ? Formats.duration(task.getTrackedMinutes())
+                : Formats.duration(task.getTrackedMinutes()) + " / " + Formats.duration(estimate));
+        tracked.setVisible(hasTime);
+        tracked.setManaged(hasTime);
+        tracked.getStyleClass().remove("over");
+        if (hasTime && estimate != null && estimate > 0 && task.getTrackedMinutes() > estimate * 1.1) {
+            tracked.getStyleClass().add("over");
+        }
+
+        boolean pomodoro = actions.isPomodoroTask(task);
+        pomodoroIcon.setVisible(pomodoro);
+        pomodoroIcon.setManaged(pomodoro);
 
         boolean showDue = task.getDueDate() != null && task.isOpen() && !compact;
         due.setVisible(showDue);
@@ -243,6 +285,12 @@ public class TaskListCell extends ListCell<Task> {
                 new FontIcon(task.isOpen() ? "mdi2c-check" : "mdi2r-refresh"));
         toggle.setOnAction(e -> actions.toggleDone(task));
         menu.getItems().addAll(edit, toggle);
+        if (task.isOpen()) {
+            MenuItem pomodoro = new MenuItem("Iniciar pomodoro", new FontIcon("mdi2t-timer-outline"));
+            pomodoro.setOnAction(e -> actions.startPomodoro(task));
+            pomodoro.setDisable(actions.isPomodoroTask(task));
+            menu.getItems().add(pomodoro);
+        }
 
         if (task.isRoutineInstance()) {
             if (task.isOpen()) {
@@ -254,6 +302,7 @@ public class TaskListCell extends ListCell<Task> {
         }
 
         if (task.isOpen()) {
+            menu.getItems().add(quadrantMenu(task, actions));
             menu.getItems().add(new SeparatorMenuItem());
             if (!today.equals(task.getScheduledDate())) {
                 MenuItem toToday = new MenuItem("Mover a hoy", new FontIcon("mdi2c-calendar-today"));
@@ -278,5 +327,31 @@ public class TaskListCell extends ListCell<Task> {
         delete.setOnAction(e -> actions.delete(task));
         menu.getItems().addAll(new SeparatorMenuItem(), delete);
         return menu;
+    }
+
+    /** Submenú "Matriz" para clasificar la tarea sin abrir el editor (también lo usa la tabla de Tareas). */
+    public static Menu quadrantMenu(Task task, TaskActions actions) {
+        Menu menu = new Menu("Matriz", new FontIcon("mdi2v-view-grid-outline"));
+        ToggleGroup group = new ToggleGroup();
+        for (Quadrant quadrant : Quadrant.values()) {
+            menu.getItems().add(quadrantItem(task, actions, group, quadrant,
+                    quadrant.getDisplayName() + " · " + quadrant.getDescription().toLowerCase()));
+        }
+        menu.getItems().add(new SeparatorMenuItem());
+        menu.getItems().add(quadrantItem(task, actions, group, null, "Sin clasificar"));
+        return menu;
+    }
+
+    private static RadioMenuItem quadrantItem(Task task, TaskActions actions, ToggleGroup group, Quadrant quadrant,
+                                              String text) {
+        RadioMenuItem item = new RadioMenuItem(text);
+        item.setToggleGroup(group);
+        item.setSelected(task.getQuadrant() == quadrant);
+        item.setOnAction(e -> {
+            if (task.getQuadrant() != quadrant) {
+                actions.setQuadrant(task, quadrant);
+            }
+        });
+        return item;
     }
 }
