@@ -4,6 +4,7 @@ import com.alejandro.synclife.AppContext;
 import com.alejandro.synclife.model.ChecklistItem;
 import com.alejandro.synclife.model.DaysOfWeek;
 import com.alejandro.synclife.model.entity.Category;
+import com.alejandro.synclife.model.entity.Goal;
 import com.alejandro.synclife.model.entity.Routine;
 import com.alejandro.synclife.model.entity.Task;
 import com.alejandro.synclife.model.enums.Area;
@@ -65,21 +66,21 @@ public final class DemoData {
                 today.minusDays(1), null, 30, today, null, Quadrant.HACER_YA, null);
         task(tasks, byName, "Llamar al dentista", Area.VIDA, "Salud", Priority.MEDIA,
                 today.plusDays(1), null, 10, today.plusDays(3), null, null, null);
-        task(tasks, byName, "Planificar el próximo sprint", Area.TRABAJO, "Reuniones", Priority.ALTA,
+        Task sprint = task(tasks, byName, "Planificar el próximo sprint", Area.TRABAJO, "Reuniones", Priority.ALTA,
                 today.plusDays(2), LocalTime.of(11, 0), 60, null, null, Quadrant.PLANIFICAR,
                 List.of(new ChecklistItem(null, "Revisar el backlog", false),
                         new ChecklistItem(null, "Estimar historias con el equipo", false)));
-        task(tasks, byName, "Correr 5 km", Area.DEPORTE, "Correr", Priority.MEDIA,
+        Task run = task(tasks, byName, "Correr 5 km", Area.DEPORTE, "Correr", Priority.MEDIA,
                 today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY)), LocalTime.of(9, 0), 40, null, null,
                 null, null);
-        task(tasks, byName, "Idea: curso de arquitectura de software", Area.TRABAJO, "Formación", Priority.BAJA,
+        Task course = task(tasks, byName, "Idea: curso de arquitectura de software", Area.TRABAJO, "Formación", Priority.BAJA,
                 null, null, null, null, "Buscar opciones online y presupuesto de formación.", Quadrant.PLANIFICAR,
                 null);
         task(tasks, byName, "Ordenar la carpeta de descargas", Area.TRABAJO, "Correo y gestión", Priority.BAJA,
                 null, null, 15, null, null, Quadrant.ELIMINAR, null);
         task(tasks, byName, "Responder encuesta interna", Area.TRABAJO, "Correo y gestión", Priority.BAJA,
                 today.plusDays(1), null, 10, null, null, null, null);
-        task(tasks, byName, "Ordenar el trastero", Area.VIDA, "Casa", Priority.BAJA,
+        Task storage = task(tasks, byName, "Ordenar el trastero", Area.VIDA, "Casa", Priority.BAJA,
                 null, null, 90, null, null, null, null);
         Task done = task(tasks, byName, "Actualizar el CV", Area.VIDA, "Personal", Priority.MEDIA,
                 today, null, 30, null, null, null, null);
@@ -94,6 +95,31 @@ public final class DemoData {
                 Priority.ALTA, today, null, 50, null, null, Quadrant.HACER_YA, null);
         time.record(slides.getId(), today.atTime(7, 0), today.atTime(7, 50), 50, TimeSource.POMODORO);
         tasks.toggleDone(slides.getId());
+
+        // Objetivos a largo plazo con tareas vinculadas (una de otra área: los objetivos no se limitan a la suya)
+        GoalService goals = context.goals();
+        Goal release = goal(goals, "Lanzar la versión 2.0 del producto", Area.TRABAJO, today.plusDays(45),
+                "Con informe de resultados y demo para dirección.");
+        goals.link(release.getId(), List.of(report.getId(), sprint.getId(), slides.getId()));
+        Goal tenK = goal(goals, "Correr una 10K", Area.DEPORTE, today.plusDays(70),
+                "Subir poco a poco: 5 km, 7 km y 10 km.");
+        goals.link(tenK.getId(), List.of(run.getId()));
+        Goal growth = goal(goals, "Formarme en arquitectura de software", Area.TRABAJO, null, null);
+        goals.link(growth.getId(), List.of(course.getId()));
+        Goal home = goal(goals, "Casa ordenada antes de Navidad", Area.VIDA, today.plusDays(60), null);
+        goals.link(home.getId(), List.of(storage.getId()));
+
+        // Revisión semanal de la semana que toca planificar, con sus prioridades
+        WeeklyReviewService reviews = context.reviews();
+        reviews.save(reviews.defaultPlannedMonday(), "Semana con muchas reuniones: bloquear las mañanas para el informe.",
+                List.of(report.getId(), sprint.getId()));
+    }
+
+    private static Goal goal(GoalService goals, String title, Area area, LocalDate target, String description) {
+        Goal goal = new Goal(title, area);
+        goal.setTargetDate(target);
+        goal.setDescription(description);
+        return goals.save(goal);
     }
 
     private static void routine(RoutineService routines, Map<String, Category> categories, String name, Area area,

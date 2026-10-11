@@ -3,13 +3,16 @@ package com.alejandro.synclife.controller;
 import com.alejandro.synclife.AppContext;
 import com.alejandro.synclife.model.entity.Task;
 import com.alejandro.synclife.model.enums.Area;
+import com.alejandro.synclife.ui.AppUi;
 import com.alejandro.synclife.ui.Formats;
 import com.alejandro.synclife.ui.FxAsync;
 import com.alejandro.synclife.ui.TaskActions;
 import com.alejandro.synclife.ui.TaskDragAndDrop;
 import com.alejandro.synclife.ui.Ui;
+import com.alejandro.synclife.ui.View;
 import com.alejandro.synclife.ui.ViewController;
 import com.alejandro.synclife.ui.cell.TaskListCell;
+import javafx.css.PseudoClass;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -36,7 +39,7 @@ import java.util.function.Supplier;
 /** Pantalla "Semana": siete columnas (L-D) con las tareas de cada día y arrastrar y soltar para reprogramar. */
 public class WeekController implements ViewController {
 
-    private record WeekData(Map<LocalDate, List<Task>> week, List<Task> unscheduled) {
+    private record WeekData(Map<LocalDate, List<Task>> week, List<Task> unscheduled, List<Task> priorities) {
     }
 
     /** Columna de un día. La fecha cambia al navegar entre semanas. */
@@ -55,6 +58,8 @@ public class WeekController implements ViewController {
         }
     }
 
+    private static final PseudoClass DONE = PseudoClass.getPseudoClass("done");
+
     private final AppContext context;
     private final List<DayColumn> columns = new ArrayList<>(7);
     private final ToggleGroup areaGroup = new ToggleGroup();
@@ -65,6 +70,7 @@ public class WeekController implements ViewController {
     @FXML private Label weekTitle;
     @FXML private Label weekSubtitle;
     @FXML private HBox areaFilterBox;
+    @FXML private HBox prioritiesBox;
     @FXML private GridPane weekGrid;
     @FXML private ToggleButton unscheduledToggle;
     @FXML private VBox unscheduledBox;
@@ -169,7 +175,8 @@ public class WeekController implements ViewController {
         LocalDate shown = monday;
         FxAsync.run(() -> {
             context.routines().ensureInstances(shown, shown.plusDays(6));
-            return new WeekData(context.tasks().tasksForWeek(shown), context.tasks().unscheduled());
+            return new WeekData(context.tasks().tasksForWeek(shown), context.tasks().unscheduled(),
+                    context.reviews().prioritiesFor(shown));
         }, result -> {
             if (shown.equals(monday)) {
                 data = result;
@@ -207,10 +214,55 @@ public class WeekController implements ViewController {
         unscheduledList.getItems().setAll(week.unscheduled().stream()
                 .filter(t -> area == null || t.getArea() == area).toList());
 
+        showPriorities(week.priorities());
         weekTitle.setText(Formats.weekTitle(monday));
         weekSubtitle.setText(open + (open == 1 ? " pendiente" : " pendientes") + " · " + done
                 + (done == 1 ? " completada" : " completadas")
                 + (minutes > 0 ? " · " + Formats.duration(minutes) + " planificadas" : ""));
+    }
+
+    /** Chips "1 Informe · 2 Sprint · 3 …" con las prioridades de la revisión semanal; doble clic para editar. */
+    private void showPriorities(List<Task> priorities) {
+        prioritiesBox.getChildren().clear();
+        prioritiesBox.setVisible(!priorities.isEmpty());
+        prioritiesBox.setManaged(!priorities.isEmpty());
+        if (priorities.isEmpty()) {
+            return;
+        }
+        Label title = new Label("Prioridades:", new FontIcon("mdi2s-star-outline"));
+        title.getStyleClass().addAll("text-muted", "priorities-title");
+        title.setMinWidth(Region.USE_PREF_SIZE);
+        prioritiesBox.getChildren().add(title);
+        for (int i = 0; i < priorities.size(); i++) {
+            Task task = priorities.get(i);
+            Label number = new Label(String.valueOf(i + 1));
+            number.getStyleClass().add("priority-number");
+            Label chip = new Label(task.getTitle(), number);
+            chip.getStyleClass().add("priority-chip");
+            chip.setMinWidth(40);
+            chip.setMaxWidth(260);
+            chip.pseudoClassStateChanged(DONE, task.isDone());
+            chip.setTooltip(new Tooltip(task.getTitle() + (task.getScheduledDate() == null ? " · sin fecha"
+                    : " · " + Formats.relativeDay(task.getScheduledDate(), context.today()))
+                    + (task.isDone() ? " · hecha" : "") + "\nDoble clic para editarla"));
+            chip.setOnMouseClicked(e -> {
+                if (e.getClickCount() == 2) {
+                    actions.edit(task);
+                }
+            });
+            prioritiesBox.getChildren().add(chip);
+        }
+    }
+
+    /** Muestra la semana que empieza en {@code weekMonday} (p. ej. desde la revisión semanal). */
+    public void showWeek(LocalDate weekMonday) {
+        monday = Formats.mondayOf(weekMonday);
+        onShow();
+    }
+
+    @FXML
+    private void openReview() {
+        AppUi.navigator().navigate(View.REVISION);
     }
 
     @FXML

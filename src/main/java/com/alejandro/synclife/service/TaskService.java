@@ -5,6 +5,7 @@ import com.alejandro.synclife.dao.TaskDao;
 import com.alejandro.synclife.model.ChecklistItem;
 import com.alejandro.synclife.model.TaskFilter;
 import com.alejandro.synclife.model.entity.Category;
+import com.alejandro.synclife.model.entity.Goal;
 import com.alejandro.synclife.model.entity.Subtask;
 import com.alejandro.synclife.model.entity.Task;
 import com.alejandro.synclife.model.enums.Area;
@@ -42,6 +43,8 @@ public class TaskService {
             "Las tareas de una rutina no tienen lista de comprobación: se regeneran al editar la rutina.";
     static final String ROUTINE_MATRIX_ERROR =
             "Las tareas de una rutina no se clasifican en la matriz de Eisenhower.";
+    static final String ROUTINE_GOAL_ERROR =
+            "Las tareas de una rutina no se vinculan a objetivos: se regeneran al editar la rutina.";
     public static final int MAX_CHECKLIST_ITEMS = 50;
 
     /** Contenido de la matriz de Eisenhower: tareas abiertas por cuadrante y las que aún no tienen. */
@@ -184,8 +187,12 @@ public class TaskService {
                 if (task.getUrgent() != null || task.getImportant() != null) {
                     throw new ValidationException(ROUTINE_MATRIX_ERROR);
                 }
+                if (task.getGoal() != null) {
+                    throw new ValidationException(ROUTINE_GOAL_ERROR);
+                }
             }
             attachCategory(s, task);
+            attachGoal(s, task);
             if (task.getStatus() == TaskStatus.COMPLETADA) {
                 if (task.getCompletedAt() == null) {
                     task.setCompletedAt(now().withNano(0));
@@ -408,9 +415,17 @@ public class TaskService {
         }
     }
 
+    /** Sustituye el objetivo desconectado por el gestionado (null si ya no existe). */
+    private static void attachGoal(Session s, Task task) {
+        if (task.getGoal() != null) {
+            task.setGoal(s.find(Goal.class, task.getGoal().getId()));
+        }
+    }
+
     private static Task initialized(Task task) {
         Hibernate.initialize(task.getCategory());
         Hibernate.initialize(task.getRoutine());
+        Hibernate.initialize(task.getGoal());
         return task;
     }
 }

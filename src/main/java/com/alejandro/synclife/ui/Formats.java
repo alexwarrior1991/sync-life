@@ -80,6 +80,18 @@ public final class Formats {
                 : String.format("%02d:%02d", minutes, rest);
     }
 
+    /** "Faltan 45 días", "Falta 1 día", "Es hoy", "Venció ayer" o "Venció hace 3 días". */
+    public static String daysLeft(LocalDate target, LocalDate today) {
+        long days = java.time.temporal.ChronoUnit.DAYS.between(today, target);
+        if (days == 0) {
+            return "Es hoy";
+        }
+        if (days > 0) {
+            return days == 1 ? "Falta 1 día" : "Faltan " + days + " días";
+        }
+        return days == -1 ? "Venció ayer" : "Venció hace " + (-days) + " días";
+    }
+
     /** "50 min de 1 h (83 %)"; sin estimación, solo "50 min". */
     public static String trackedVsEstimate(int tracked, Integer estimated) {
         String real = tracked <= 0 ? "0 min" : duration(tracked);

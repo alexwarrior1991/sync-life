@@ -22,6 +22,8 @@
                 <VBox spacing="2" minWidth="0" HBox.hgrow="ALWAYS">
                     <Label fx:id="weekTitle" styleClass="title-2"/>
                     <Label fx:id="weekSubtitle" styleClass="text-muted"/>
+                    <!-- Prioridades de la semana elegidas en la revisión semanal -->
+                    <HBox fx:id="prioritiesBox" spacing="6" alignment="CENTER_LEFT" minWidth="0" styleClass="priorities-box"/>
                 </VBox>
                 <Button onAction="#previousWeek" styleClass="button-icon, flat" minWidth="-Infinity">
                     <graphic><FontIcon iconLiteral="mdi2c-chevron-left"/></graphic>
@@ -35,8 +37,11 @@
                 </Button>
             </HBox>
             <HBox styleClass="week-toolbar" spacing="8">
-                <HBox fx:id="areaFilterBox"/>
+                <HBox fx:id="areaFilterBox" minWidth="-Infinity"/>
                 <Region HBox.hgrow="ALWAYS"/>
+                <Button text="Revisión semanal" onAction="#openReview" styleClass="flat" minWidth="-Infinity">
+                    <graphic><FontIcon iconLiteral="mdi2c-calendar-check-outline"/></graphic>
+                </Button>
                 <ToggleButton fx:id="unscheduledToggle" text="Sin programar" selected="true" minWidth="-Infinity">
                     <graphic><FontIcon iconLiteral="mdi2i-inbox-outline"/></graphic>
                 </ToggleButton>

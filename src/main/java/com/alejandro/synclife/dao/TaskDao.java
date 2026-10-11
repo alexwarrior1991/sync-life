@@ -26,7 +26,7 @@ import java.util.Set;
 public class TaskDao extends AbstractDao<Task> {
 
     private static final String BASE =
-            "select t from Task t left join fetch t.category left join fetch t.routine ";
+            "select t from Task t left join fetch t.category left join fetch t.routine left join fetch t.goal ";
     private static final String DAY_ORDER = "t.startTime nulls last, t.priority desc, t.id";
 
     public TaskDao() {
@@ -105,6 +105,42 @@ public class TaskDao extends AbstractDao<Task> {
                 .setParameter("from", from)
                 .setParameter("to", to)
                 .getResultList();
+    }
+
+    /** Tareas vinculadas a un objetivo: primero las abiertas (por fecha), luego el resto. */
+    public List<Task> findByGoal(Session session, long goalId) {
+        return session.createSelectionQuery(
+                        BASE + "where t.goal.id = :goalId order by "
+                                + "case when t.status in :open then 0 else 1 end, "
+                                + "t.scheduledDate nulls last, t.priority desc, t.id", Task.class)
+                .setParameter("goalId", goalId)
+                .setParameter("open", TaskStatus.OPEN)
+                .getResultList();
+    }
+
+    /** Tareas que se pueden vincular a un objetivo: puntuales, abiertas y sin objetivo. */
+    public List<Task> findLinkable(Session session) {
+        return session.createSelectionQuery(
+                        BASE + "where t.goal is null and t.routine is null and t.status in :open "
+                                + "order by t.area, t.scheduledDate nulls last, t.priority desc, t.id", Task.class)
+                .setParameter("open", TaskStatus.OPEN)
+                .getResultList();
+    }
+
+    /** Número de tareas [total, completadas] por objetivo, sin contar las canceladas. */
+    public Map<Long, long[]> countByGoal(Session session) {
+        List<Object[]> rows = session.createSelectionQuery(
+                        "select t.goal.id, count(t), sum(case when t.status = :done then 1 else 0 end) from Task t "
+                                + "where t.goal is not null and t.status <> :cancelled group by t.goal.id",
+                        Object[].class)
+                .setParameter("done", TaskStatus.COMPLETADA)
+                .setParameter("cancelled", TaskStatus.CANCELADA)
+                .getResultList();
+        Map<Long, long[]> counts = new HashMap<>();
+        for (Object[] row : rows) {
+            counts.put((Long) row[0], new long[]{((Number) row[1]).longValue(), ((Number) row[2]).longValue()});
+        }
+        return counts;
     }
 
     public List<Task> search(Session session, TaskFilter filter) {

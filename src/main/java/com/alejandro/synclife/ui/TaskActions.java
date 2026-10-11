@@ -23,6 +23,7 @@ public class TaskActions {
     private final AppContext context;
     private final Node anchor;
     private final Runnable refresh;
+    private boolean showGoal = true;
 
     public TaskActions(AppContext context, Node anchor, Runnable refresh) {
         this.context = context;
@@ -32,6 +33,16 @@ public class TaskActions {
 
     public LocalDate today() {
         return context.today();
+    }
+
+    /** Las celdas no muestran el objetivo de cada tarea (p. ej. en la lista de tareas de un objetivo). */
+    public TaskActions hidingGoal() {
+        showGoal = false;
+        return this;
+    }
+
+    public boolean showsGoal() {
+        return showGoal;
     }
 
     public void toggleDone(Task task) {
@@ -72,6 +83,14 @@ public class TaskActions {
     /** ¿Hay un Pomodoro en marcha con esta tarea? (para destacarla en las listas) */
     public boolean isPomodoroTask(Task task) {
         return AppUi.isInstalled() && AppUi.pomodoro().isWorkingOn(task);
+    }
+
+    /** Quita la tarea de su objetivo (la tarea se conserva). */
+    public void unlinkGoal(Task task) {
+        execute(() -> {
+            context.goals().unlink(task.getId());
+            return null;
+        });
     }
 
     /** Clasifica la tarea en la matriz de Eisenhower ({@code null} = sin clasificar). */
