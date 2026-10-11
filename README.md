@@ -66,7 +66,7 @@ o la variable de entorno `SYNCLIFE_HOME`.
 | **Categorías** | Categorías propias dentro de cada área (Trabajo, Deporte, Vida), con color. Se pueden archivar. |
 | **Revisión semanal** | Asistente guiado en 5 pasos para cerrar una semana y planificar la siguiente: repaso, pendientes, planificar días, hasta **3 prioridades** y notas. Guarda un historial. |
 | **Estadísticas** | Completadas por área y por día, **tiempo real registrado**, **precisión de las estimaciones** (tabla "estimado frente a real") y cumplimiento de rutinas. |
-| **Ajustes** | Tema claro/oscuro, días de antelación de las rutinas, duración del Pomodoro, **notificaciones y bandeja**, copia de seguridad, **exportar/importar CSV** y carpeta de datos. |
+| **Ajustes** | Tema claro/oscuro, días de antelación de las rutinas, duración del Pomodoro, **notificaciones y bandeja**, copia de seguridad, **exportar/importar CSV**, **borrar todos los datos** y carpeta de datos. |
 
 Atajos: **Ctrl+N** nueva tarea · **Ctrl+1** Hoy · **Ctrl+2** Semana · **Ctrl+3** Tareas · **Ctrl+4** Matriz · **Ctrl+5** Objetivos · **Ctrl+6** Rutinas · **Ctrl+7** Categorías · **Ctrl+8** Revisión semanal · **Ctrl+9** Estadísticas · **Ctrl+0** Ajustes · **F5** actualizar · **Supr** eliminar la tarea seleccionada · doble clic para editar · clic derecho para más acciones.
 
@@ -131,6 +131,16 @@ Subtareas…) es opcional y la cabecera se reconoce sin importar mayúsculas ni 
 `12/10/2026`, separadores `;`, `,` o tabulador, y ficheros guardados por Excel en Windows. Antes de importar se
 muestra una **vista previa** con lo que se va a crear y los errores por línea. La importación **solo añade** tareas;
 con «Omitir las que ya tengas» reimportar el mismo fichero no duplica nada.
+
+### Empezar de cero
+
+**Ajustes → Datos → Borrar todos los datos…** deja SyncLife como recién instalada: borra tareas, rutinas,
+objetivos y revisiones semanales, y vuelven las categorías de serie. Hay que escribir `BORRAR` para confirmar.
+Antes de borrar se guarda una copia completa en la carpeta `copias` de la carpeta de datos; para recuperarla,
+cierra SyncLife (también desde la bandeja) y pon esa copia en lugar de `synclife.db`. Los ajustes se conservan.
+
+Para borrarlo absolutamente todo, ajustes incluidos: cierra SyncLife (en la bandeja → «Salir») y borra la
+carpeta de datos (`C:\Users\<usuario>\.synclife`). Se vuelve a crear vacía al abrirla.
 
 Para **eliminar** una tarea: la papelera al final de cada fila, el botón «Eliminar» del editor o la tecla Supr.
 Las tareas que genera una rutina no se eliminan (volverían a aparecer): en su lugar se **omiten** (icono ⏭ o Supr).
@@ -197,12 +207,12 @@ Incluye tests unitarios (días de la semana, calendario de rutinas, ciclo Pomodo
 converters, formatos, ajustes, lector/escritor CSV, instancia única) y de integración contra un SQLite real en un directorio
 temporal: migraciones, claves foráneas y borrados en cascada, almacenamiento de fechas, servicios de tareas, listas de
 comprobación, registro de tiempo, matriz, estadísticas, objetivos, revisión semanal, recordatorios, exportar/importar
-CSV, categorías y rutinas.
+CSV, borrar todos los datos, categorías y rutinas.
 
 GitHub Actions (`.github/workflows/ci.yml`) pasa los tests en Linux con Java 21 y en Windows con Java 25, y en Linux
 ejecuta también la prueba de humo de la interfaz y guarda las capturas como artefacto.
 
-Prueba de humo de la interfaz completa (recorre todas las pantallas, lanza un recordatorio, reimporta un CSV y guarda capturas):
+Prueba de humo de la interfaz completa (recorre todas las pantallas, lanza un recordatorio, reimporta un CSV, borra todos los datos al final y guarda capturas):
 
 ```bash
 java -Dsynclife.home=/tmp/synclife-prueba -Dsynclife.smoke=true -Dsynclife.smoke.shots=/tmp/capturas -jar target/SyncLife-all.jar

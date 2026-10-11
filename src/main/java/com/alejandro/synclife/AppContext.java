@@ -12,6 +12,7 @@ import com.alejandro.synclife.dao.WeeklyReviewDao;
 import com.alejandro.synclife.persistence.DatabaseMigrator;
 import com.alejandro.synclife.persistence.HibernateUtil;
 import com.alejandro.synclife.service.CategoryService;
+import com.alejandro.synclife.service.DataResetService;
 import com.alejandro.synclife.service.GoalService;
 import com.alejandro.synclife.service.ReminderService;
 import com.alejandro.synclife.service.WeeklyReviewService;
@@ -51,6 +52,7 @@ public final class AppContext implements AutoCloseable {
     private final WeeklyReviewService reviewService;
     private final ReminderService reminderService;
     private final TaskCsvService csvService;
+    private final DataResetService dataResetService;
 
     private AppContext(Path dataDir, Clock clock) {
         try {
@@ -81,6 +83,7 @@ public final class AppContext implements AutoCloseable {
                 goalService, clock);
         this.reminderService = new ReminderService(sessionFactory, taskDao, clock);
         this.csvService = new TaskCsvService(taskService, categoryService, goalService);
+        this.dataResetService = new DataResetService(sessionFactory, jdbcUrl, dataDir, clock);
     }
 
     /** Crea un contexto independiente (usado por los tests). */
@@ -162,6 +165,10 @@ public final class AppContext implements AutoCloseable {
 
     public TaskCsvService csv() {
         return csvService;
+    }
+
+    public DataResetService dataReset() {
+        return dataResetService;
     }
 
     @Override

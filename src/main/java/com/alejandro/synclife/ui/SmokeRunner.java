@@ -1,9 +1,11 @@
 package com.alejandro.synclife.ui;
 
 import com.alejandro.synclife.AppContext;
+import com.alejandro.synclife.config.AppPaths;
 import com.alejandro.synclife.config.AppSettings.ThemeMode;
 import com.alejandro.synclife.controller.MainController;
 import com.alejandro.synclife.controller.ReviewController;
+import com.alejandro.synclife.controller.SettingsController;
 import com.alejandro.synclife.controller.WeekController;
 import com.alejandro.synclife.model.entity.Goal;
 import com.alejandro.synclife.model.entity.Task;
@@ -70,6 +72,7 @@ public final class SmokeRunner {
     private final Deque<Runnable> steps = new ArrayDeque<>();
     private Dialog<EditorResult> editor;
     private Dialog<ImportOptions> csvDialog;
+    private javafx.scene.control.Alert resetDialog;
     private String originalTitle;
     private int originalChecklist;
     private long pomodoroTaskId;
@@ -359,6 +362,41 @@ public final class SmokeRunner {
         steps.add(() -> main.navigator().navigate(View.MATRIZ));
         steps.add(() -> shot("matriz-oscuro"));
         steps.add(() -> Theme.apply(context.settings().getTheme()));
+        // Borrar todos los datos (lo último: deja la base de datos vacía). Primero, el diálogo de confirmación
+        steps.add(() -> FxAsync.run(() -> context.dataReset().summary(), summary -> {
+            resetDialog = Dialogs.typedConfirmation("¿Borrar todos los datos?",
+                    SettingsController.resetMessage(summary), "BORRAR", "Borrar todo");
+            resetDialog.show();
+        }));
+        steps.add(() -> shot("confirmar-borrado", resetDialog.getDialogPane().getScene()));
+        steps.add(() -> resetDialog.close());
+        // Después, el botón de Ajustes (en modo humo la confirmación se da por aceptada)
+        steps.add(() -> main.navigator().navigate(View.AJUSTES));
+        steps.add(() -> {
+            if (!(stage.getScene().lookup("#reset-data") instanceof Button reset)) {
+                fail("no se encuentra «Borrar todos los datos» en Ajustes");
+                return;
+            }
+            reset.fire();
+        });
+        steps.add(() -> FxAsync.run(() -> context.dataReset().summary(), summary -> {
+            if (!summary.isEmpty() || summary.categories() != 11) {
+                fail("«Borrar todos los datos» no dejó la base de datos como nueva: " + summary);
+            }
+            if (main.pomodoro().taskProperty().get() != null) {
+                fail("la tarjeta del pomodoro sigue mostrando una tarea borrada");
+            }
+            try (var copies = Files.list(AppPaths.backupsDir(context.dataDir()))) {
+                if (copies.findAny().isEmpty()) {
+                    fail("no se guardó la copia de seguridad antes de borrar");
+                }
+            } catch (IOException e) {
+                fail("no se guardó la copia de seguridad antes de borrar: " + e.getMessage());
+            }
+            shot("datos-borrados");
+        }));
+        steps.add(() -> main.navigator().navigate(View.HOY));
+        steps.add(() -> shot("hoy-vacio"));
         next();
     }
 

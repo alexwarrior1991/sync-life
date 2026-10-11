@@ -34,6 +34,11 @@ public final class AppPaths {
         return dataDir.resolve("logs");
     }
 
+    /** Copias automáticas (p. ej. la que se guarda antes de borrar todos los datos). */
+    public static Path backupsDir(Path dataDir) {
+        return dataDir.resolve("copias");
+    }
+
     /**
      * URL JDBC con las pragmas que necesitamos en cada conexión:
      * claves foráneas activadas y espera de hasta 5 s si la base de datos está ocupada.

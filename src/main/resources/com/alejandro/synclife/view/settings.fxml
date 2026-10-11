@@ -6,6 +6,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.Spinner?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
@@ -111,6 +112,15 @@
                 </Button>
             </HBox>
             <Label text="El CSV se abre con Excel o LibreOffice. Al importar verás antes qué se va a crear; solo se añaden tareas, nunca se modifican ni borran las que tienes. Para exportar solo una parte, usa «Exportar» en Tareas con los filtros que quieras."
+                   styleClass="text-muted, text-small" wrapText="true"/>
+            <Separator/>
+            <HBox spacing="8">
+                <Button id="reset-data" text="Borrar todos los datos…" onAction="#resetData"
+                        styleClass="danger, button-outlined">
+                    <graphic><FontIcon iconLiteral="mdi2d-delete-forever-outline"/></graphic>
+                </Button>
+            </HBox>
+            <Label text="Deja SyncLife como recién instalada: borra tareas, rutinas, objetivos y revisiones, y vuelven las categorías de serie. Antes guarda una copia de todo en la carpeta «copias» de la carpeta de datos. Los ajustes de esta pantalla se conservan."
                    styleClass="text-muted, text-small" wrapText="true"/>
         </VBox>
 

@@ -8,6 +8,7 @@ import com.alejandro.synclife.config.AppSettings.PomodoroSettings;
 import com.alejandro.synclife.config.AppSettings.ThemeMode;
 import com.alejandro.synclife.model.TaskFilter;
 import com.alejandro.synclife.persistence.DatabaseBackup;
+import com.alejandro.synclife.service.DataResetService;
 import com.alejandro.synclife.service.DemoData;
 import com.alejandro.synclife.ui.AppUi;
 import com.alejandro.synclife.ui.Choice;
@@ -19,7 +20,9 @@ import com.alejandro.synclife.ui.Dialogs;
 import com.alejandro.synclife.ui.FxAsync;
 import com.alejandro.synclife.ui.Theme;
 import com.alejandro.synclife.ui.ViewController;
+import com.alejandro.synclife.ui.notify.NotificationCenter;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -29,6 +32,8 @@ import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.ToggleGroup;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
+import javafx.util.Duration;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -208,6 +213,47 @@ public class SettingsController implements ViewController {
 
     private Window window() {
         return dataDirLabel.getScene().getWindow();
+    }
+
+    @FXML
+    private void resetData() {
+        FxAsync.run(() -> context.dataReset().summary(), summary -> {
+            if (!Dialogs.confirmTyped("¿Borrar todos los datos?", resetMessage(summary), "BORRAR", "Borrar todo")) {
+                return;
+            }
+            if (AppUi.isInstalled()) {
+                if (AppUi.pomodoro().isActive()) {
+                    AppUi.pomodoro().stop(); // su tiempo se guarda antes de borrar (mismo hilo de BD) y se va con todo
+                }
+                AppUi.pomodoro().dismiss(); // la tarjeta no puede quedarse con una tarea que ya no existe
+            }
+            FxAsync.run(() -> context.dataReset().resetAll(), backup -> {
+                if (AppUi.isInstalled()) {
+                    AppUi.navigator().reset(); // ninguna pantalla debe conservar tareas que ya no existen
+                    Button open = new Button("Abrir carpeta", new FontIcon("mdi2f-folder-open-outline"));
+                    open.setOnAction(e -> SyncLifeApp.hostServices().showDocument(backup.getParent().toUri().toString()));
+                    AppUi.notifications().show(NotificationCenter.Kind.SUCCESS, "mdi2c-check-circle-outline",
+                            "Datos borrados: SyncLife empieza de cero.\nTienes una copia de lo anterior en la carpeta "
+                                    + "«copias».", Duration.seconds(10), open);
+                }
+            });
+        });
+    }
+
+    /** Texto del diálogo de confirmación de «Borrar todos los datos». */
+    public static String resetMessage(DataResetService.Summary summary) {
+        String content = summary.isEmpty() ? "No hay tareas, rutinas, objetivos ni revisiones."
+                : "Se borrarán " + plural(summary.tasks(), "tarea", "tareas") + " (también las de rutinas), "
+                + plural(summary.routines(), "rutina", "rutinas") + ", "
+                + plural(summary.goals(), "objetivo", "objetivos") + " y "
+                + plural(summary.reviews(), "revisión semanal", "revisiones semanales") + ".";
+        return content + " Tus " + plural(summary.categories(), "categoría", "categorías")
+                + " se sustituyen por las de serie.\n\nAntes se guarda una copia de todo en la carpeta «copias» de "
+                + "la carpeta de datos. Los ajustes (tema, pomodoro, notificaciones) se conservan.";
+    }
+
+    private static String plural(long count, String one, String many) {
+        return count + " " + (count == 1 ? one : many);
     }
 
     @FXML

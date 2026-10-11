@@ -1,10 +1,16 @@
 package com.alejandro.synclife.ui;
 
+import atlantafx.base.theme.Styles;
 import com.alejandro.synclife.service.ValidationException;
+import javafx.beans.binding.Bindings;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
 import java.io.PrintWriter;
@@ -79,6 +85,34 @@ public final class Dialogs {
         alert.getButtonTypes().setAll(action, ButtonType.CANCEL);
         Optional<ButtonType> answer = alert.showAndWait();
         return answer.isPresent() && answer.get() == action;
+    }
+
+    /** Para lo que no tiene vuelta atrás: el botón solo se activa tras escribir {@code word} (p. ej. BORRAR). */
+    public static boolean confirmTyped(String header, String content, String word, String actionLabel) {
+        if (headless) {
+            return true;
+        }
+        return typedConfirmation(header, content, word, actionLabel).showAndWait()
+                .map(button -> button.getButtonData() == ButtonBar.ButtonData.OK_DONE).orElse(false);
+    }
+
+    public static Alert typedConfirmation(String header, String content, String word, String actionLabel) {
+        Alert alert = alert(Alert.AlertType.WARNING, header, null);
+        Label message = new Label(content);
+        message.setWrapText(true);
+        TextField field = new TextField();
+        field.setPromptText(word);
+        VBox box = new VBox(12, message, new Label("Para confirmar, escribe " + word + ":"), field);
+        box.setPrefWidth(480);
+        alert.getDialogPane().setContent(box);
+        ButtonType action = new ButtonType(actionLabel, ButtonBar.ButtonData.OK_DONE);
+        alert.getButtonTypes().setAll(action, ButtonType.CANCEL);
+        Button button = (Button) alert.getDialogPane().lookupButton(action);
+        button.getStyleClass().add(Styles.DANGER);
+        button.disableProperty().bind(Bindings.createBooleanBinding(
+                () -> !word.equalsIgnoreCase(field.getText().trim()), field.textProperty()));
+        alert.setOnShown(e -> field.requestFocus());
+        return alert;
     }
 
     private static Alert alert(Alert.AlertType type, String header, String content) {
