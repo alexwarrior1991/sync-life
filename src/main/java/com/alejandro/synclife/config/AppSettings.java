@@ -21,9 +21,23 @@ public final class AppSettings {
     private static final Logger LOG = Logger.getLogger(AppSettings.class.getName());
     private static final String FILE_NAME = "settings.properties";
 
+    /** Ajustes del Pomodoro, en minutos (salvo {@code longBreakEvery}, en número de enfoques). */
+    public record PomodoroSettings(int focusMinutes, int shortBreakMinutes, int longBreakMinutes,
+                                   int longBreakEvery, boolean autoStartBreaks, boolean sound) {
+
+        public static final PomodoroSettings DEFAULT = new PomodoroSettings(25, 5, 15, 4, true, true);
+
+        /** Los mismos ajustes, con cada valor dentro de su rango permitido. */
+        public PomodoroSettings clamped() {
+            return new PomodoroSettings(clamp(focusMinutes, 5, 90), clamp(shortBreakMinutes, 1, 30),
+                    clamp(longBreakMinutes, 5, 60), clamp(longBreakEvery, 2, 8), autoStartBreaks, sound);
+        }
+    }
+
     private final Path file;
     private ThemeMode theme = ThemeMode.CLARO;
     private int routineHorizonDays = DEFAULT_HORIZON;
+    private PomodoroSettings pomodoro = PomodoroSettings.DEFAULT;
 
     private AppSettings(Path file) {
         this.file = file;
@@ -37,6 +51,14 @@ public final class AppSettings {
                 props.load(in);
                 settings.theme = parseTheme(props.getProperty("theme"));
                 settings.routineHorizonDays = clampHorizon(parseInt(props.getProperty("routine.horizon.days")));
+                PomodoroSettings d = PomodoroSettings.DEFAULT;
+                settings.pomodoro = new PomodoroSettings(
+                        parseInt(props.getProperty("pomodoro.focus.minutes"), d.focusMinutes()),
+                        parseInt(props.getProperty("pomodoro.shortBreak.minutes"), d.shortBreakMinutes()),
+                        parseInt(props.getProperty("pomodoro.longBreak.minutes"), d.longBreakMinutes()),
+                        parseInt(props.getProperty("pomodoro.longBreak.every"), d.longBreakEvery()),
+                        parseBoolean(props.getProperty("pomodoro.autoStartBreaks"), d.autoStartBreaks()),
+                        parseBoolean(props.getProperty("pomodoro.sound"), d.sound())).clamped();
             } catch (IOException | RuntimeException e) {
                 LOG.log(Level.WARNING, "No se pudieron leer los ajustes; se usan los valores por defecto", e);
             }
@@ -48,6 +70,12 @@ public final class AppSettings {
         Properties props = new Properties();
         props.setProperty("theme", theme.name());
         props.setProperty("routine.horizon.days", Integer.toString(routineHorizonDays));
+        props.setProperty("pomodoro.focus.minutes", Integer.toString(pomodoro.focusMinutes()));
+        props.setProperty("pomodoro.shortBreak.minutes", Integer.toString(pomodoro.shortBreakMinutes()));
+        props.setProperty("pomodoro.longBreak.minutes", Integer.toString(pomodoro.longBreakMinutes()));
+        props.setProperty("pomodoro.longBreak.every", Integer.toString(pomodoro.longBreakEvery()));
+        props.setProperty("pomodoro.autoStartBreaks", Boolean.toString(pomodoro.autoStartBreaks()));
+        props.setProperty("pomodoro.sound", Boolean.toString(pomodoro.sound()));
         Files.createDirectories(file.getParent());
         try (OutputStream out = Files.newOutputStream(file)) {
             props.store(out, "Ajustes de SyncLife");
@@ -70,6 +98,14 @@ public final class AppSettings {
         this.routineHorizonDays = clampHorizon(days);
     }
 
+    public synchronized PomodoroSettings getPomodoro() {
+        return pomodoro;
+    }
+
+    public synchronized void setPomodoro(PomodoroSettings pomodoro) {
+        this.pomodoro = pomodoro == null ? PomodoroSettings.DEFAULT : pomodoro.clamped();
+    }
+
     private static ThemeMode parseTheme(String value) {
         try {
             return value == null ? ThemeMode.CLARO : ThemeMode.valueOf(value);
@@ -79,14 +115,26 @@ public final class AppSettings {
     }
 
     private static int parseInt(String value) {
+        return parseInt(value, DEFAULT_HORIZON);
+    }
+
+    private static int parseInt(String value, int fallback) {
         try {
-            return value == null ? DEFAULT_HORIZON : Integer.parseInt(value.trim());
+            return value == null ? fallback : Integer.parseInt(value.trim());
         } catch (NumberFormatException e) {
-            return DEFAULT_HORIZON;
+            return fallback;
         }
     }
 
+    private static boolean parseBoolean(String value, boolean fallback) {
+        return value == null ? fallback : Boolean.parseBoolean(value.trim());
+    }
+
     private static int clampHorizon(int days) {
-        return Math.max(MIN_HORIZON, Math.min(MAX_HORIZON, days));
+        return clamp(days, MIN_HORIZON, MAX_HORIZON);
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 }

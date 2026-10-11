@@ -15,6 +15,7 @@ import com.alejandro.synclife.ui.TaskActions;
 import com.alejandro.synclife.ui.Ui;
 import com.alejandro.synclife.ui.ViewController;
 import com.alejandro.synclife.ui.cell.CategoryChoiceCell;
+import com.alejandro.synclife.ui.cell.TaskListCell;
 import javafx.animation.PauseTransition;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.collections.FXCollections;
@@ -44,7 +45,6 @@ import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -181,11 +181,12 @@ public class TasksController implements ViewController {
                 setContentDisplay(javafx.scene.control.ContentDisplay.RIGHT);
             }
         });
-        title.setPrefWidth(280);
+        title.setPrefWidth(270);
+        title.setMinWidth(140);
 
         TableColumn<Task, Area> area = graphicColumn("Área", Task::getArea, Ui::areaChip);
-        area.setPrefWidth(130);
-        area.setMinWidth(120);
+        area.setPrefWidth(120);
+        area.setMinWidth(110);
 
         TableColumn<Task, Category> category = new TableColumn<>("Categoría");
         category.setCellValueFactory(cd -> new ReadOnlyObjectWrapper<>(cd.getValue().getCategory()));
@@ -198,22 +199,36 @@ public class TasksController implements ViewController {
                 setGraphic(empty || value == null ? null : Ui.dot(value.getColorHex(), 4));
             }
         });
-        category.setPrefWidth(170);
+        category.setPrefWidth(160);
+        category.setMinWidth(100);
 
         TableColumn<Task, Priority> priority = graphicColumn("Prioridad", Task::getPriority, Ui::priorityBadge);
-        priority.setPrefWidth(110);
+        priority.setPrefWidth(105);
+        priority.setMinWidth(100);
 
         TableColumn<Task, TaskStatus> status = textColumn("Estado", Task::getStatus, TaskStatus::getDisplayName);
-        status.setPrefWidth(110);
+        status.setPrefWidth(120);
+        status.setMinWidth(105);
 
-        TableColumn<Task, LocalDate> scheduled = textColumn("Programada", Task::getScheduledDate,
-                d -> Formats.relativeDay(d, context.today()));
-        scheduled.setComparator(Comparator.nullsLast(Comparator.naturalOrder()));
-        scheduled.setPrefWidth(120);
-
-        TableColumn<Task, LocalTime> time = textColumn("Hora", Task::getStartTime, Formats::time);
-        time.setComparator(Comparator.nullsLast(Comparator.naturalOrder()));
-        time.setPrefWidth(70);
+        // Día y hora en una sola columna: "Hoy 10:00"
+        TableColumn<Task, Task> scheduled = new TableColumn<>("Programada");
+        scheduled.setCellValueFactory(cd -> new ReadOnlyObjectWrapper<>(cd.getValue()));
+        scheduled.setComparator(Comparator.comparing(Task::getScheduledDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(Task::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())));
+        scheduled.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Task task, boolean empty) {
+                super.updateItem(task, empty);
+                if (empty || task == null || task.getScheduledDate() == null) {
+                    setText(null);
+                    return;
+                }
+                String day = Formats.relativeDay(task.getScheduledDate(), context.today());
+                setText(task.getStartTime() == null ? day : day + " " + Formats.time(task.getStartTime()));
+            }
+        });
+        scheduled.setPrefWidth(150);
+        scheduled.setMinWidth(135);
 
         TableColumn<Task, Task> due = new TableColumn<>("Vence");
         due.setCellValueFactory(cd -> new ReadOnlyObjectWrapper<>(cd.getValue()));
@@ -233,13 +248,46 @@ public class TasksController implements ViewController {
                 }
             }
         });
-        due.setPrefWidth(120);
+        due.setPrefWidth(115);
+        due.setMinWidth(100);
 
-        TableColumn<Task, Integer> estimate = textColumn("Estimado", Task::getEstimatedMinutes, Formats::duration);
-        estimate.setComparator(Comparator.nullsLast(Comparator.naturalOrder()));
-        estimate.setPrefWidth(100);
+        // Estimación y, si hay tiempo registrado, "real / estimado" con un reloj (como en las listas);
+        // en rojo si lo real supera lo estimado en más de un 10 %
+        TableColumn<Task, Task> time = new TableColumn<>("Tiempo");
+        time.setCellValueFactory(cd -> new ReadOnlyObjectWrapper<>(cd.getValue()));
+        time.setComparator(Comparator.comparing(Task::getEstimatedMinutes, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparingInt(Task::getTrackedMinutes));
+        time.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(Task task, boolean empty) {
+                super.updateItem(task, empty);
+                getStyleClass().remove("over");
+                setGraphic(null);
+                setTooltip(null);
+                if (empty || task == null) {
+                    setText(null);
+                    return;
+                }
+                Integer estimated = task.getEstimatedMinutes();
+                int tracked = task.getTrackedMinutes();
+                if (tracked == 0) {
+                    setText(Formats.duration(estimated));
+                    return;
+                }
+                setGraphic(new FontIcon("mdi2c-clock-outline"));
+                setText(estimated == null || estimated == 0 ? Formats.duration(tracked)
+                        : Formats.duration(tracked) + " / " + Formats.duration(estimated));
+                setTooltip(new javafx.scene.control.Tooltip("Real registrado: "
+                        + Formats.trackedVsEstimate(tracked, estimated)));
+                if (estimated != null && estimated > 0 && tracked > estimated * 1.1) {
+                    getStyleClass().add("over");
+                }
+            }
+        });
+        time.setPrefWidth(130);
+        time.setMinWidth(125);
 
-        table.getColumns().setAll(List.of(done, title, area, category, priority, status, scheduled, time, due, estimate));
+        table.getColumns().setAll(List.of(done, title, area, category, priority, status, scheduled, due, time));
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         SortedList<Task> sorted = new SortedList<>(items);
         sorted.comparatorProperty().bind(table.comparatorProperty());
@@ -298,6 +346,15 @@ public class TasksController implements ViewController {
                 new FontIcon(task.isOpen() ? "mdi2c-check" : "mdi2r-refresh"));
         toggle.setOnAction(e -> actions.toggleDone(task));
         List<MenuItem> items = new ArrayList<>(List.of(edit, toggle));
+        if (task.isOpen()) {
+            MenuItem pomodoro = new MenuItem("Iniciar pomodoro", new FontIcon("mdi2t-timer-outline"));
+            pomodoro.setOnAction(e -> actions.startPomodoro(task));
+            pomodoro.setDisable(actions.isPomodoroTask(task));
+            items.add(pomodoro);
+            if (!task.isRoutineInstance()) {
+                items.add(TaskListCell.quadrantMenu(task, actions));
+            }
+        }
         if (task.isRoutineInstance()) {
             if (task.isOpen()) {
                 MenuItem skip = new MenuItem("Omitir este día", new FontIcon("mdi2s-skip-next"));

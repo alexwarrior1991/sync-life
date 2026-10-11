@@ -69,6 +69,26 @@ public final class Formats {
         return time == null ? "" : TIME.format(time);
     }
 
+    /** Cuenta atrás "mm:ss" (o "h:mm:ss" a partir de una hora), redondeando los segundos hacia arriba. */
+    public static String countdown(java.time.Duration remaining) {
+        long seconds = Math.max(0, (remaining.toMillis() + 999) / 1000);
+        long hours = seconds / 3600;
+        long minutes = seconds % 3600 / 60;
+        long rest = seconds % 60;
+        return hours > 0
+                ? String.format("%d:%02d:%02d", hours, minutes, rest)
+                : String.format("%02d:%02d", minutes, rest);
+    }
+
+    /** "50 min de 1 h (83 %)"; sin estimación, solo "50 min". */
+    public static String trackedVsEstimate(int tracked, Integer estimated) {
+        String real = tracked <= 0 ? "0 min" : duration(tracked);
+        if (estimated == null || estimated <= 0) {
+            return real;
+        }
+        return real + " de " + duration(estimated) + " (" + Math.round(100.0 * tracked / estimated) + " %)";
+    }
+
     /** "45 min", "2 h", "1 h 30 min"; vacío si no hay duración. */
     public static String duration(Integer minutes) {
         if (minutes == null || minutes <= 0) {

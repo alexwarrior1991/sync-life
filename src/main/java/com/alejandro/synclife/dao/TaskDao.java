@@ -3,11 +3,13 @@ package com.alejandro.synclife.dao;
 import com.alejandro.synclife.model.RoutineDay;
 import com.alejandro.synclife.model.TaskFilter;
 import com.alejandro.synclife.model.entity.Task;
+import com.alejandro.synclife.model.enums.Area;
 import com.alejandro.synclife.model.enums.TaskStatus;
 import org.hibernate.Session;
 import org.hibernate.query.SelectionQuery;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -80,6 +82,31 @@ public class TaskDao extends AbstractDao<Task> {
                 .getResultList();
     }
 
+    /** Tareas puntuales abiertas para la matriz de Eisenhower ({@code area == null} = todas). */
+    public List<Task> findOpenForMatrix(Session session, Area area) {
+        SelectionQuery<Task> query = session.createSelectionQuery(
+                BASE + "where t.status in :open and t.routine is null"
+                        + (area == null ? "" : " and t.area = :area")
+                        + " order by t.dueDate nulls last, t.priority desc, t.scheduledDate nulls last, t.id",
+                Task.class);
+        query.setParameter("open", TaskStatus.OPEN);
+        if (area != null) {
+            query.setParameter("area", area);
+        }
+        return query.getResultList();
+    }
+
+    /** Tareas completadas con {@code completedAt} en {@code [from, to)}, sea cual sea su día programado. */
+    public List<Task> findCompletedBetween(Session session, LocalDateTime from, LocalDateTime to) {
+        return session.createSelectionQuery(
+                        BASE + "where t.status = :done and t.completedAt >= :from and t.completedAt < :to "
+                                + "order by t.completedAt, t.id", Task.class)
+                .setParameter("done", TaskStatus.COMPLETADA)
+                .setParameter("from", from)
+                .setParameter("to", to)
+                .getResultList();
+    }
+
     public List<Task> search(Session session, TaskFilter filter) {
         StringBuilder hql = new StringBuilder(BASE).append("where 1 = 1");
         Map<String, Object> params = new LinkedHashMap<>();
@@ -142,11 +169,15 @@ public class TaskDao extends AbstractDao<Task> {
         return days;
     }
 
-    /** Borra las instancias PENDIENTE de una rutina desde {@code from} (para regenerarlas tras editarla). */
+    /**
+     * Borra las instancias PENDIENTE de una rutina desde {@code from} (para regenerarlas tras editarla).
+     * Las que ya tienen tiempo registrado se conservan: borrarlas se llevaría también ese tiempo.
+     */
     public int deletePendingInstancesFrom(Session session, long routineId, LocalDate from) {
         return session.createMutationQuery(
                         "delete from Task t where t.routine.id = :routineId "
-                                + "and t.status = :pending and t.scheduledDate >= :from")
+                                + "and t.status = :pending and t.scheduledDate >= :from "
+                                + "and not exists (select 1 from TimeEntry e where e.task = t)")
                 .setParameter("routineId", routineId)
                 .setParameter("pending", TaskStatus.PENDIENTE)
                 .setParameter("from", from)

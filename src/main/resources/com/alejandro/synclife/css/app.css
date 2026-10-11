@@ -443,3 +443,158 @@
 .day-chart .default-color1.chart-legend-item-symbol {
     -fx-background-color: -color-neutral-muted;
 }
+
+.table-cell.on-target,
+.table-cell.on-target .ikonli-font-icon {
+    -fx-text-fill: -color-success-fg;
+    -fx-icon-color: -color-success-fg;
+}
+
+.table-cell.over .ikonli-font-icon {
+    -fx-icon-color: -color-danger-fg;
+}
+
+/* ------------------------------------------------------------------ barra lateral: scroll y avisos */
+
+.sidebar-scroll,
+.sidebar-scroll > .viewport,
+.sidebar-scroll .nav-box {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.toast-layer {
+    -fx-padding: 16;
+    -fx-alignment: top-right;
+}
+
+.toast {
+    -fx-font-size: 12px;
+}
+
+/* ------------------------------------------------------------------ Pomodoro */
+
+.pomodoro-card {
+    -fx-background-color: -color-bg-default;
+    -fx-border-color: -color-border-default;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 10;
+}
+
+.pomodoro-card:focus-phase {
+    -fx-border-color: -color-danger-emphasis;
+    -fx-background-color: -color-danger-subtle;
+}
+
+.pomodoro-card:break-phase {
+    -fx-border-color: -color-success-emphasis;
+    -fx-background-color: -color-success-subtle;
+}
+
+.pomodoro-phase {
+    -fx-font-weight: bold;
+    -fx-graphic-text-gap: 6;
+}
+
+.pomodoro-card:focus-phase .pomodoro-icon {
+    -fx-icon-color: -color-danger-fg;
+}
+
+.pomodoro-card:break-phase .pomodoro-icon {
+    -fx-icon-color: -color-success-fg;
+}
+
+.pomodoro-remaining {
+    -fx-font-size: 2.2em;
+    -fx-font-weight: bold;
+}
+
+.pomodoro-card:paused .pomodoro-remaining {
+    -fx-text-fill: -color-fg-muted;
+}
+
+.pomodoro-task {
+    -fx-text-fill: -color-fg-muted;
+    -fx-font-size: 0.9em;
+}
+
+.pomodoro-card:focus-phase .progress-bar {
+    -color-progress-bar-fill: -color-danger-emphasis;
+}
+
+.pomodoro-card:break-phase .progress-bar {
+    -color-progress-bar-fill: -color-success-emphasis;
+}
+
+.pomodoro-active-icon {
+    -fx-icon-color: -color-danger-fg;
+    -fx-icon-size: 15px;
+}
+
+/* ------------------------------------------------------------------ indicadores de la tarea */
+
+.task-indicator {
+    -fx-text-fill: -color-fg-muted;
+    -fx-font-size: 0.85em;
+    -fx-graphic-text-gap: 3;
+}
+
+.task-indicator .ikonli-font-icon {
+    -fx-icon-size: 13px;
+    -fx-icon-color: -color-fg-muted;
+}
+
+.task-indicator.complete,
+.task-indicator.complete .ikonli-font-icon {
+    -fx-text-fill: -color-success-fg;
+    -fx-icon-color: -color-success-fg;
+}
+
+.task-indicator.over,
+.task-indicator.over .ikonli-font-icon,
+.tasks-table .table-cell.over,
+.label.over {
+    -fx-text-fill: -color-danger-fg;
+    -fx-icon-color: -color-danger-fg;
+}
+
+/* ------------------------------------------------------------------ editor: lista de comprobación */
+
+.editor-scroll,
+.editor-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.checklist-row .checklist-title {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -color-border-muted transparent;
+    -fx-background-radius: 0;
+    -fx-padding: 3 4 3 4;
+}
+
+.checklist-row .checklist-title:focused {
+    -fx-border-color: transparent transparent -color-accent-emphasis transparent;
+}
+
+.checklist-row:done .checklist-title {
+    -fx-text-fill: -color-fg-subtle;
+}
+
+/* ------------------------------------------------------------------ matriz de Eisenhower */
+
+.matrix-axis {
+    -fx-text-fill: -color-fg-muted;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.quadrant-pane {
+    -fx-border-width: 1 1 1 4;
+}
+
+.quadrant-icon {
+    -fx-icon-size: 18px;
+}

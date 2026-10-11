@@ -2,6 +2,7 @@ package com.alejandro.synclife.ui;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -35,6 +36,22 @@ class FormatsTest {
         assertThat(Formats.duration(45)).isEqualTo("45 min");
         assertThat(Formats.duration(120)).isEqualTo("2 h");
         assertThat(Formats.duration(90)).isEqualTo("1 h 30 min");
+    }
+
+    @Test
+    void countdownRoundsUpToTheNextSecond() {
+        assertThat(Formats.countdown(Duration.ofMinutes(25))).isEqualTo("25:00");
+        assertThat(Formats.countdown(Duration.ofMillis(61_200))).isEqualTo("01:02");
+        assertThat(Formats.countdown(Duration.ofMinutes(90))).isEqualTo("1:30:00");
+        assertThat(Formats.countdown(Duration.ZERO)).isEqualTo("00:00");
+        assertThat(Formats.countdown(Duration.ofSeconds(-5))).isEqualTo("00:00");
+    }
+
+    @Test
+    void trackedAgainstEstimate() {
+        assertThat(Formats.trackedVsEstimate(50, 60)).isEqualTo("50 min de 1 h (83 %)");
+        assertThat(Formats.trackedVsEstimate(90, null)).isEqualTo("1 h 30 min");
+        assertThat(Formats.trackedVsEstimate(0, 30)).isEqualTo("0 min de 30 min (0 %)");
     }
 
     @Test

@@ -1,10 +1,14 @@
 package com.alejandro.synclife.service;
 
+import com.alejandro.synclife.dao.SubtaskDao;
 import com.alejandro.synclife.dao.TaskDao;
+import com.alejandro.synclife.model.ChecklistItem;
 import com.alejandro.synclife.model.TaskFilter;
 import com.alejandro.synclife.model.entity.Category;
+import com.alejandro.synclife.model.entity.Subtask;
 import com.alejandro.synclife.model.entity.Task;
 import com.alejandro.synclife.model.enums.Area;
+import com.alejandro.synclife.model.enums.Quadrant;
 import com.alejandro.synclife.model.enums.TaskStatus;
 import org.hibernate.Hibernate;
 import org.hibernate.Session;
@@ -16,6 +20,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,14 +38,28 @@ public class TaskService {
             "Las tareas de una rutina no se pueden mover de día. Puedes omitirla o editar la rutina.";
     static final String ROUTINE_DELETE_ERROR =
             "Las tareas generadas por una rutina no se eliminan: usa «Omitir» o edita la rutina.";
+    static final String ROUTINE_CHECKLIST_ERROR =
+            "Las tareas de una rutina no tienen lista de comprobación: se regeneran al editar la rutina.";
+    static final String ROUTINE_MATRIX_ERROR =
+            "Las tareas de una rutina no se clasifican en la matriz de Eisenhower.";
+    public static final int MAX_CHECKLIST_ITEMS = 50;
+
+    /** Contenido de la matriz de Eisenhower: tareas abiertas por cuadrante y las que aún no tienen. */
+    public record MatrixData(Map<Quadrant, List<Task>> quadrants, List<Task> unclassified) {
+        public List<Task> of(Quadrant quadrant) {
+            return quadrants.getOrDefault(quadrant, List.of());
+        }
+    }
 
     private final SessionFactory sessionFactory;
     private final TaskDao taskDao;
+    private final SubtaskDao subtaskDao;
     private final Clock clock;
 
-    public TaskService(SessionFactory sessionFactory, TaskDao taskDao, Clock clock) {
+    public TaskService(SessionFactory sessionFactory, TaskDao taskDao, SubtaskDao subtaskDao, Clock clock) {
         this.sessionFactory = sessionFactory;
         this.taskDao = taskDao;
+        this.subtaskDao = subtaskDao;
         this.clock = clock;
     }
 
@@ -103,10 +123,48 @@ public class TaskService {
                 .toList();
     }
 
+    /** Lista de comprobación de la tarea, en orden. */
+    public List<ChecklistItem> checklist(long taskId) {
+        return sessionFactory.fromTransaction(s -> subtaskDao.findByTask(s, taskId).stream()
+                .map(sub -> new ChecklistItem(sub.getId(), sub.getTitle(), sub.isDone()))
+                .toList());
+    }
+
+    /** Tareas puntuales abiertas repartidas por cuadrante ({@code area == null} = todas las áreas). */
+    public MatrixData matrix(Area area) {
+        List<Task> open = sessionFactory.fromTransaction(s -> taskDao.findOpenForMatrix(s, area));
+        Map<Quadrant, List<Task>> quadrants = new EnumMap<>(Quadrant.class);
+        for (Quadrant quadrant : Quadrant.values()) {
+            quadrants.put(quadrant, new ArrayList<>());
+        }
+        List<Task> unclassified = new ArrayList<>();
+        for (Task task : open) {
+            Quadrant quadrant = task.getQuadrant();
+            (quadrant == null ? unclassified : quadrants.get(quadrant)).add(task);
+        }
+        return new MatrixData(quadrants, unclassified);
+    }
+
+    /** Tareas completadas entre dos días (ambos incluidos) según su fecha de completado. */
+    public List<Task> completedBetween(LocalDate from, LocalDate to) {
+        return sessionFactory.fromTransaction(s ->
+                taskDao.findCompletedBetween(s, from.atStartOfDay(), to.plusDays(1).atStartOfDay()));
+    }
+
     // ---------------------------------------------------------------- cambios
 
     public Task save(Task task) {
+        return save(task, null);
+    }
+
+    /**
+     * Guarda la tarea y, si {@code checklist} no es null, deja su lista de comprobación exactamente así
+     * (en ese orden): actualiza los elementos con id, crea los nuevos y borra los que ya no están.
+     * Todo en una transacción.
+     */
+    public Task save(Task task, List<ChecklistItem> checklist) {
         validate(task);
+        List<ChecklistItem> items = checklist == null ? null : validChecklist(checklist);
         return sessionFactory.fromTransaction(s -> {
             if (!task.isNew()) {
                 Task current = s.find(Task.class, task.getId());
@@ -119,6 +177,14 @@ public class TaskService {
                 }
                 task.setRoutine(current.getRoutine()); // el vínculo con la rutina no se edita desde la UI
             }
+            if (task.isRoutineInstance()) {
+                if (items != null && !items.isEmpty()) {
+                    throw new ValidationException(ROUTINE_CHECKLIST_ERROR);
+                }
+                if (task.getUrgent() != null || task.getImportant() != null) {
+                    throw new ValidationException(ROUTINE_MATRIX_ERROR);
+                }
+            }
             attachCategory(s, task);
             if (task.getStatus() == TaskStatus.COMPLETADA) {
                 if (task.getCompletedAt() == null) {
@@ -127,7 +193,13 @@ public class TaskService {
             } else {
                 task.setCompletedAt(null);
             }
-            return initialized(taskDao.save(s, task));
+            Task saved = taskDao.save(s, task);
+            if (items != null) {
+                syncChecklist(s, saved, items);
+            }
+            s.flush();
+            s.refresh(saved); // recalcula subtareas y minutos registrados (@Formula)
+            return initialized(saved);
         });
     }
 
@@ -182,6 +254,30 @@ public class TaskService {
         return setStatus(id, TaskStatus.CANCELADA);
     }
 
+    /** Clasifica la tarea en un cuadrante de Eisenhower ({@code null} = sin clasificar). */
+    public Task setQuadrant(long id, Quadrant quadrant) {
+        return update(id, task -> {
+            if (task.isRoutineInstance()) {
+                throw new ValidationException(ROUTINE_MATRIX_ERROR);
+            }
+            task.setQuadrant(quadrant);
+        });
+    }
+
+    /**
+     * Se va a trabajar en la tarea (p. ej. empieza un Pomodoro): una pendiente pasa a "En progreso".
+     * Así, si es de una rutina, editar la rutina ya no la regenera.
+     */
+    public Task startWorking(long id) {
+        return update(id, task -> {
+            if (!task.isOpen()) {
+                throw new ValidationException("La tarea ya está " + task.getStatus().getDisplayName().toLowerCase()
+                        + ": reábrela para seguir trabajando en ella.");
+            }
+            task.setStatus(TaskStatus.EN_PROGRESO);
+        });
+    }
+
     public void delete(long id) {
         sessionFactory.inTransaction(s -> {
             Task task = s.find(Task.class, id);
@@ -231,6 +327,49 @@ public class TaskService {
             change.accept(task);
             return task;
         });
+    }
+
+    /** Recorta los títulos, descarta los vacíos y comprueba los límites. */
+    private static List<ChecklistItem> validChecklist(List<ChecklistItem> checklist) {
+        List<ChecklistItem> items = new ArrayList<>();
+        for (ChecklistItem item : checklist) {
+            String title = item.title() == null ? "" : item.title().trim();
+            if (title.isEmpty()) {
+                continue;
+            }
+            if (title.length() > 200) {
+                throw new ValidationException("Cada paso de la lista de comprobación admite como mucho 200 caracteres.");
+            }
+            items.add(item.withTitle(title));
+        }
+        if (items.size() > MAX_CHECKLIST_ITEMS) {
+            throw new ValidationException("La lista de comprobación admite como mucho "
+                    + MAX_CHECKLIST_ITEMS + " pasos.");
+        }
+        return items;
+    }
+
+    private void syncChecklist(Session s, Task task, List<ChecklistItem> items) {
+        Map<Long, Subtask> existing = new HashMap<>();
+        for (Subtask subtask : subtaskDao.findByTask(s, task.getId())) {
+            existing.put(subtask.getId(), subtask);
+        }
+        int order = 0;
+        for (ChecklistItem item : items) {
+            // Un id que no es de esta tarea (p. ej. de una copia) se trata como un paso nuevo
+            Subtask subtask = item.id() == null ? null : existing.remove(item.id());
+            if (subtask == null) {
+                subtask = new Subtask(task, item.title());
+                subtask.setDone(item.done());
+                subtask.setSortOrder(order++);
+                s.persist(subtask);
+            } else {
+                subtask.setTitle(item.title());
+                subtask.setDone(item.done());
+                subtask.setSortOrder(order++);
+            }
+        }
+        existing.values().forEach(s::remove);
     }
 
     private void validate(Task task) {

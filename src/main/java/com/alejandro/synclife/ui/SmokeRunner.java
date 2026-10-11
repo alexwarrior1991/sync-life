@@ -3,12 +3,13 @@ package com.alejandro.synclife.ui;
 import com.alejandro.synclife.AppContext;
 import com.alejandro.synclife.config.AppSettings.ThemeMode;
 import com.alejandro.synclife.controller.MainController;
-import com.alejandro.synclife.model.entity.Category;
 import com.alejandro.synclife.model.entity.Task;
 import com.alejandro.synclife.model.enums.Area;
+import com.alejandro.synclife.model.enums.Quadrant;
 import com.alejandro.synclife.model.enums.TaskStatus;
 import com.alejandro.synclife.service.DeleteResult;
 import com.alejandro.synclife.service.DemoData;
+import com.alejandro.synclife.ui.control.ChecklistEditor;
 import com.alejandro.synclife.ui.control.TaskEditorDialog;
 import com.alejandro.synclife.ui.control.TaskEditorDialog.EditorResult;
 import javafx.animation.PauseTransition;
@@ -41,7 +42,7 @@ import java.util.logging.Logger;
  */
 public final class SmokeRunner {
 
-    private record EditData(Task task, List<Category> categories) {
+    private record EditData(Task task, TaskEditorDialog.EditorData editor) {
     }
 
     private static final Logger LOG = Logger.getLogger(SmokeRunner.class.getName());
@@ -54,6 +55,9 @@ public final class SmokeRunner {
     private final Deque<Runnable> steps = new ArrayDeque<>();
     private Dialog<EditorResult> editor;
     private String originalTitle;
+    private int originalChecklist;
+    private long pomodoroTaskId;
+    private int pomodoroMinutesBefore;
 
     public SmokeRunner(AppContext context, MainController main, Stage stage) {
         this.context = context;
@@ -92,36 +96,44 @@ public final class SmokeRunner {
 
         steps.add(() -> FxAsync.runVoid(() -> {
             if (context.routines().findAll().isEmpty()) {
-                DemoData.seed(context.tasks(), context.categories(), context.routines());
+                DemoData.seed(context);
             }
         }, null));
         for (View view : View.values()) {
             steps.add(() -> main.navigator().navigate(view));
             steps.add(() -> shot(view.name().toLowerCase()));
         }
-        steps.add(() -> FxAsync.run(() -> context.categories().findAll(false), categories -> {
-            editor = TaskEditorDialog.create(stage, context, null, context.today(), categories);
+        steps.add(() -> FxAsync.run(() -> TaskEditorDialog.load(context, null), data -> {
+            editor = TaskEditorDialog.create(stage, context, null, context.today(), data);
             editor.show();
         }));
         steps.add(() -> shot("editor", editor.getDialogPane().getScene()));
         steps.add(() -> editor.close());
-        // Editar una tarea existente (con botón "Eliminar") pulsando "Guardar" y persistir el resultado
-        steps.add(() -> FxAsync.run(() -> new EditData(
-                context.tasks().tasksForDay(context.today()).stream()
-                        .filter(t -> !t.isRoutineInstance()).findFirst().orElseThrow(),
-                context.categories().findAll(false)), data -> {
+        // Editar una tarea existente con lista de comprobación: añadir un paso, "Guardar" y persistir
+        steps.add(() -> FxAsync.run(() -> {
+            Task existing = context.tasks().tasksForDay(context.today()).stream()
+                    .filter(t -> !t.isRoutineInstance() && t.getSubtaskTotal() > 0).findFirst().orElseThrow();
+            return new EditData(existing, TaskEditorDialog.load(context, existing));
+        }, data -> {
             Task existing = data.task();
             originalTitle = existing.getTitle();
-            editor = TaskEditorDialog.create(stage, context, existing, existing.getScheduledDate(), data.categories());
+            originalChecklist = data.editor().checklist().size();
+            editor = TaskEditorDialog.create(stage, context, existing, existing.getScheduledDate(), data.editor());
             editor.show();
         }));
-        steps.add(() -> shot("editor-existente", editor.getDialogPane().getScene()));
+        steps.add(() -> shot("editor-checklist", editor.getDialogPane().getScene()));
         steps.add(() -> {
             boolean hasDelete = editor.getDialogPane().getButtonTypes().stream()
                     .anyMatch(b -> b.getButtonData() == ButtonBar.ButtonData.LEFT);
             if (!hasDelete) {
                 fail("el editor de una tarea existente no ofrece «Eliminar»");
             }
+            if (!(editor.getDialogPane().lookup(".checklist-editor") instanceof ChecklistEditor checklist)
+                    || checklist.size() != originalChecklist) {
+                fail("el editor no muestra la lista de comprobación de la tarea");
+                return;
+            }
+            checklist.add("Paso añadido en la prueba de humo");
             ButtonType save = editor.getDialogPane().getButtonTypes().stream()
                     .filter(b -> b.getButtonData() == ButtonBar.ButtonData.OK_DONE).findFirst().orElseThrow();
             ((Button) editor.getDialogPane().lookupButton(save)).fire();
@@ -130,12 +142,59 @@ public final class SmokeRunner {
                 fail("el diálogo no devolvió la tarea editada");
                 return;
             }
-            FxAsync.run(() -> context.tasks().save(result.task()), saved -> {
+            FxAsync.run(() -> context.tasks().save(result.task(), result.checklist()), saved -> {
                 if (!saved.getTitle().equals(originalTitle)) {
                     fail("el título cambió al guardar sin modificar");
                 }
+                if (saved.getSubtaskTotal() != originalChecklist + 1) {
+                    fail("la lista de comprobación no se guardó: " + saved.getSubtaskTotal() + " pasos");
+                }
             });
         });
+        // Matriz: clasificar una tarea y comprobar que aparece en su cuadrante
+        steps.add(() -> FxAsync.run(() -> {
+            Task task = context.tasks().quickAdd("Clasificar en la matriz", Area.TRABAJO, null, null);
+            context.tasks().setQuadrant(task.getId(), Quadrant.DELEGAR);
+            boolean found = context.tasks().matrix(Area.TRABAJO).of(Quadrant.DELEGAR).stream()
+                    .anyMatch(t -> t.getId().equals(task.getId()));
+            context.tasks().delete(task.getId());
+            return found;
+        }, found -> {
+            if (!found) {
+                fail("la tarea clasificada no aparece en su cuadrante");
+            }
+        }));
+        // Pomodoro: empezar con una tarea, comprobar la cuenta atrás y terminar (< 1 min: no se registra)
+        steps.add(() -> FxAsync.run(() -> context.tasks().tasksForDay(context.today()).stream()
+                .filter(t -> t.isOpen() && !t.isRoutineInstance()).findFirst().orElseThrow(), task -> {
+            pomodoroTaskId = task.getId();
+            pomodoroMinutesBefore = task.getTrackedMinutes();
+            main.navigator().navigate(View.HOY);
+            main.pomodoro().start(task);
+        }));
+        steps.add(() -> {
+            if (!main.pomodoro().isActive() || !stage.getTitle().contains("Enfoque")) {
+                fail("el pomodoro no arrancó (título: " + stage.getTitle() + ")");
+            }
+            if (AppUi.notifications().shownCount() == 0) {
+                fail("no se mostró el aviso de inicio del pomodoro");
+            }
+            shot("pomodoro-activo");
+        });
+        steps.add(() -> {
+            main.pomodoro().stop();
+            if (main.pomodoro().isActive() || !stage.getTitle().equals("SyncLife")) {
+                fail("el pomodoro no se detuvo");
+            }
+        });
+        steps.add(() -> FxAsync.run(() -> context.tasks().findById(pomodoroTaskId).orElseThrow(), task -> {
+            if (task.getStatus() != TaskStatus.EN_PROGRESO) {
+                fail("la tarea del pomodoro no pasó a «En progreso»");
+            }
+            if (task.getTrackedMinutes() != pomodoroMinutesBefore) {
+                fail("se registró tiempo de una sesión de menos de un minuto");
+            }
+        }));
         // Borrado múltiple
         steps.add(() -> FxAsync.run(() -> {
             Task first = context.tasks().quickAdd("Borrar 1", Area.VIDA, context.today(), null);
@@ -161,6 +220,8 @@ public final class SmokeRunner {
             main.navigator().navigate(View.SEMANA);
         });
         steps.add(() -> shot("semana-oscuro"));
+        steps.add(() -> main.navigator().navigate(View.MATRIZ));
+        steps.add(() -> shot("matriz-oscuro"));
         steps.add(() -> Theme.apply(context.settings().getTheme()));
         next();
     }

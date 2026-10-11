@@ -2,6 +2,7 @@ package com.alejandro.synclife.persistence;
 
 import com.alejandro.synclife.AppContext;
 import com.alejandro.synclife.TestSupport;
+import com.alejandro.synclife.model.ChecklistItem;
 import com.alejandro.synclife.model.entity.Task;
 import com.alejandro.synclife.model.enums.Area;
 import org.junit.jupiter.api.AfterEach;
@@ -11,12 +12,15 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.TimeZone;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MigrationTest {
 
@@ -37,7 +41,7 @@ class MigrationTest {
     @Test
     void flywayAppliesAllMigrationsAndSeedsCategories() {
         assertThat(TestSupport.single(ctx, "select max(cast(version as integer)) from flyway_schema_history"))
-                .isEqualTo("2");
+                .isEqualTo("5");
         assertThat(TestSupport.column(ctx, "select area || ':' || count(*) from category group by area order by area"))
                 .containsExactly("DEPORTE:3", "TRABAJO:4", "VIDA:4");
     }
@@ -102,6 +106,46 @@ class MigrationTest {
         } finally {
             TimeZone.setDefault(original);
         }
+    }
+
+    @Test
+    void deletingATaskCascadesToItsChecklistAndTimeEntries() {
+        Task task = ctx.tasks().save(new Task("Informe", Area.TRABAJO),
+                List.of(new ChecklistItem(null, "Datos", false), new ChecklistItem(null, "Gráficos", true)));
+        ctx.timeTracking().addManual(task.getId(), 30);
+
+        ctx.tasks().delete(task.getId());
+
+        assertThat(TestSupport.single(ctx, "select count(*) from subtask")).isEqualTo("0");
+        assertThat(TestSupport.single(ctx, "select count(*) from time_entry")).isEqualTo("0");
+    }
+
+    @Test
+    void existingTasksStayUnclassifiedInTheMatrix() throws Exception {
+        // Fila insertada "a mano" como la habría dejado la versión anterior (sin urgent/important)
+        TestSupport.execute(ctx, "insert into task (title, area, created_at, updated_at) "
+                + "values ('Antigua', 'TRABAJO', '2026-01-01T10:00:00', '2026-01-01T10:00:00')");
+        assertThat(TestSupport.single(ctx,
+                "select coalesce(urgent, 'NULL') || '|' || coalesce(important, 'NULL') from task where title = 'Antigua'"))
+                .isEqualTo("NULL|NULL");
+        Task loaded = ctx.tasks().matrix(null).unclassified().get(0);
+        assertThat(loaded.getTitle()).isEqualTo("Antigua");
+        assertThat(loaded.getQuadrant()).isNull();
+    }
+
+    @Test
+    void timeEntryConstraintsRejectInvalidRows() {
+        Task task = ctx.tasks().save(new Task("Informe", Area.TRABAJO));
+        assertThatThrownBy(() -> TestSupport.execute(ctx,
+                "insert into time_entry (task_id, started_at, ended_at, minutes, source, created_at, updated_at) "
+                        + "values (" + task.getId() + ", '2026-10-12T10:00:00', '2026-10-12T09:00:00', 10, "
+                        + "'MANUAL', '2026-10-12T10:00:00', '2026-10-12T10:00:00')"))
+                .isInstanceOf(SQLException.class);
+        assertThatThrownBy(() -> TestSupport.execute(ctx,
+                "insert into time_entry (task_id, started_at, ended_at, minutes, source, created_at, updated_at) "
+                        + "values (" + task.getId() + ", '2026-10-12T09:00:00', '2026-10-12T10:00:00', 0, "
+                        + "'MANUAL', '2026-10-12T10:00:00', '2026-10-12T10:00:00')"))
+                .isInstanceOf(SQLException.class);
     }
 
     @Test

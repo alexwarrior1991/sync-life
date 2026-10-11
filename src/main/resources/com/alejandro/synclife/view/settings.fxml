@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Spinner?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
@@ -36,6 +38,35 @@
                 <Button text="Aplicar" onAction="#applyHorizon"/>
             </HBox>
             <Label text="Así aparecen en la vista Semana y puedes planificar alrededor de ellas. Nunca se generan días pasados."
+                   styleClass="text-muted, text-small" wrapText="true"/>
+        </VBox>
+
+        <VBox styleClass="panel" spacing="10" maxWidth="760">
+            <Label text="Pomodoro" styleClass="title-4"/>
+            <FlowPane hgap="24" vgap="8">
+                <HBox spacing="8" styleClass="settings-row">
+                    <Label text="Enfoque" minWidth="-Infinity"/>
+                    <Spinner fx:id="focusSpinner" editable="true" prefWidth="90"/>
+                    <Label text="min" minWidth="-Infinity"/>
+                </HBox>
+                <HBox spacing="8" styleClass="settings-row">
+                    <Label text="Descanso" minWidth="-Infinity"/>
+                    <Spinner fx:id="shortBreakSpinner" editable="true" prefWidth="90"/>
+                    <Label text="min" minWidth="-Infinity"/>
+                </HBox>
+                <HBox spacing="8" styleClass="settings-row">
+                    <Label text="Descanso largo" minWidth="-Infinity"/>
+                    <Spinner fx:id="longBreakSpinner" editable="true" prefWidth="90"/>
+                    <Label text="min, cada" minWidth="-Infinity"/>
+                    <Spinner fx:id="everySpinner" editable="true" prefWidth="80"/>
+                    <Label text="pomodoros" minWidth="-Infinity"/>
+                </HBox>
+            </FlowPane>
+            <HBox spacing="20">
+                <CheckBox fx:id="autoBreakCheck" text="Empezar los descansos automáticamente"/>
+                <CheckBox fx:id="soundCheck" text="Sonido al terminar cada fase"/>
+            </HBox>
+            <Label text="Inicia un pomodoro con clic derecho sobre una tarea → «Iniciar pomodoro», o desde su editor. El tiempo de enfoque se guarda como tiempo real de la tarea y se compara con lo estimado en Estadísticas."
                    styleClass="text-muted, text-small" wrapText="true"/>
         </VBox>
 

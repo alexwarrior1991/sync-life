@@ -4,13 +4,16 @@ import com.alejandro.synclife.config.AppPaths;
 import com.alejandro.synclife.config.AppSettings;
 import com.alejandro.synclife.dao.CategoryDao;
 import com.alejandro.synclife.dao.RoutineDao;
+import com.alejandro.synclife.dao.SubtaskDao;
 import com.alejandro.synclife.dao.TaskDao;
+import com.alejandro.synclife.dao.TimeEntryDao;
 import com.alejandro.synclife.persistence.DatabaseMigrator;
 import com.alejandro.synclife.persistence.HibernateUtil;
 import com.alejandro.synclife.service.CategoryService;
 import com.alejandro.synclife.service.RoutineService;
 import com.alejandro.synclife.service.StatsService;
 import com.alejandro.synclife.service.TaskService;
+import com.alejandro.synclife.service.TimeTrackingService;
 import org.hibernate.SessionFactory;
 
 import java.io.IOException;
@@ -37,6 +40,7 @@ public final class AppContext implements AutoCloseable {
     private final CategoryService categoryService;
     private final RoutineService routineService;
     private final StatsService statsService;
+    private final TimeTrackingService timeTrackingService;
 
     private AppContext(Path dataDir, Clock clock) {
         try {
@@ -55,11 +59,12 @@ public final class AppContext implements AutoCloseable {
         TaskDao taskDao = new TaskDao();
         CategoryDao categoryDao = new CategoryDao();
         RoutineDao routineDao = new RoutineDao();
-        this.taskService = new TaskService(sessionFactory, taskDao, clock);
+        this.taskService = new TaskService(sessionFactory, taskDao, new SubtaskDao(), clock);
         this.categoryService = new CategoryService(sessionFactory, categoryDao, taskDao);
         this.routineService = new RoutineService(sessionFactory, routineDao, taskDao, clock,
                 settings::getRoutineHorizonDays);
-        this.statsService = new StatsService(taskService, clock);
+        this.timeTrackingService = new TimeTrackingService(sessionFactory, new TimeEntryDao(), clock);
+        this.statsService = new StatsService(taskService, timeTrackingService, clock);
     }
 
     /** Crea un contexto independiente (usado por los tests). */
@@ -121,6 +126,10 @@ public final class AppContext implements AutoCloseable {
 
     public StatsService stats() {
         return statsService;
+    }
+
+    public TimeTrackingService timeTracking() {
+        return timeTrackingService;
     }
 
     @Override
